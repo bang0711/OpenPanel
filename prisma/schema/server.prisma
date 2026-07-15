@@ -1,0 +1,18 @@
+// Application: registered remote SSH servers.
+
+model Server {
+  id              String   @id @default(uuid())
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name            String
+  host            String
+  port            Int      @default(22)
+  username        String
+  authType        String // 'password' | 'key'
+  secretEnc       String // AES-256-GCM blob (password or private key)
+  passphraseEnc   String? // optional, for encrypted keys
+  hostFingerprint String? // pinned SHA256 host key (TOFU)
+  createdAt       DateTime @default(now())
+
+  @@map("server")
+}
