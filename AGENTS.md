@@ -6,33 +6,43 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # OpenPanel — project rules (always follow)
 
-OpenPanel is a cPanel-style panel that manages remote Linux servers over SSH. Stack: Next.js 16
-(App Router, `proxy.ts` not middleware) · Elysia mounted in `app/api/[[...slugs]]/route.ts` ·
-Better Auth (admin plugin) · Prisma 7 (multi-file schema, better-sqlite3 adapter) · shadcn/ui
-(base-mira) · Bun. See `README.md` (Conventions) and `ROADMAP.md` (what to build next).
+OpenPanel is a cPanel-style panel that manages remote Linux servers over SSH. **Bun-workspace
+monorepo**: `apps/web` (Next.js 16 frontend, App Router, `proxy.ts` not middleware) ·
+`apps/server` (standalone Elysia backend on Bun; entry `apps/server/src/index.ts` mounts the
+Elysia app + Better Auth + CORS) · `packages/shared` (cross-boundary code, e.g. catalog data).
+Stack: Better Auth (admin plugin, backend-side) · Prisma 7 (multi-file schema, `pg` adapter,
+backend-only) · shadcn/ui (base-mira) · Bun. Web ⇄ backend is **same-origin**: the browser
+calls `/api/*`, and `apps/web/src/proxy.ts` proxies it to the backend at runtime
+(`API_BASE_URL`) — no CORS, no API URL in the client bundle. The web app has **no DB access**;
+Server Components read via `apps/web/src/lib/server-fetch.ts` (attaches the session cookie
+manually). The terminal is an in-process Elysia `.ws()` bridge on the API server (port 3001),
+not a separate service. See `README.md` (Conventions) and `ROADMAP.md` (what to build next).
 
 ## Tooling
-- **Always use Bun.** Install: `bun add` / `bun add -d`. Add shadcn components with
-  `bunx --bun shadcn@latest add <name>` (never hand-write UI primitives).
-- Standalone TS scripts run under `tsx` (Bun can't load `better-sqlite3`): `bun run seed`,
-  `bun run terminal`. Run both servers with `bun run dev:all`.
-- Before finishing: `bunx tsc --noEmit` and `bunx eslint --fix` must pass.
+- **Always use Bun.** Install: `bun add` / `bun add -d` (add `--filter=@openpanel/<app>` to
+  target a workspace). Add shadcn components with `bunx --bun shadcn@latest add <name>` in
+  `apps/web` (never hand-write UI primitives).
+- The seed script runs under `tsx` (Node): `bun run seed`. Run both processes
+  (web :3000 + API/ws :3001) with `bun run dev` from the repo root.
+- Before finishing: in each touched app run `bunx tsc --noEmit` and `bunx eslint --fix`.
 
 ## Backend — feature modules
-Put each feature in `src/server/modules/<feature>/`, split into:
+Put each feature in `apps/server/src/server/modules/<feature>/`, split into:
 - `<feature>.controller.ts` — Elysia routes only (HTTP concerns, status codes, auth macro).
 - `<feature>.service.ts` — business logic as a **class** + exported singleton
   (`export const fooService = new FooService()`). Never put logic in the controller.
 - `<feature>.schema.ts` — Elysia `t` validation schemas.
 - `<feature>.constant.ts` — allowlists / constants / validation helpers.
-Mount the controller in `src/server/app.ts`. Guard every route with the `auth`/`admin` macro
-and `loadOwnedServer` for server-scoped routes.
+Mount the controller in `apps/server/src/server/app.ts`. Guard every route with the
+`auth`/`admin` macro and `loadOwnedServer` for server-scoped routes. Cross-boundary code
+(shared by web + server, e.g. catalog metadata) lives in `packages/shared` (`@openpanel/shared`).
 
 ## Frontend — API client & components
-- All backend calls go through `src/lib/api` — `api.<resource>.<method>()`. **Never** call
-  `fetch` directly in a component. One resource class per `resources/<name>.resource.ts`;
-  types in `resources/<name>.type.ts`; endpoint paths in `endpoint.constant.ts`
-  (`API_ENDPOINT`, server routes derive from one base).
+- All backend calls go through `apps/web/src/lib/api` — `api.<resource>.<method>()`. **Never**
+  call `fetch` directly in a component (Server Components use `serverFetch` instead). The client
+  calls same-origin `/api/*` (proxied to the backend by `proxy.ts`). One resource class per
+  `resources/<name>.resource.ts`; types in `resources/<name>.type.ts`; endpoint paths in
+  `endpoint.constant.ts` (`API_ENDPOINT`, server routes derive from one base).
 - **One React component per file**, split small. Reusable pieces go in `components/common/`
   (`IconButton`, `ActionTooltip`, `RefreshButton`, `TextInputDialog`, `CommandOutputDialog`,
   `ServerStatusBadge`). Feature components in `components/<feature>/`.
@@ -43,7 +53,7 @@ and `loadOwnedServer` for server-scoped routes.
 - Never interpolate user input into a shell command. Validate with allowlists/regex; prefer
   SFTP over shell for file ops; feed dynamic content via stdin (`runCommandInput`) not the
   command string. Normalize remote paths to reject traversal.
-- SSH credentials are encrypted at rest (`src/lib/crypto.ts`); never return them to the client.
+- SSH credentials are encrypted at rest (`apps/server/src/lib/crypto.ts`); never return them to the client.
 - Keep live infra data uncached (freshness = correctness). Only bundle/​cache immutable data.
 
 ## Imports
@@ -57,7 +67,7 @@ Whenever you add or change a feature, in the **same change**:
 Do not consider a feature done until both docs are updated.
 
 ## i18n — keep all locales in sync (required)
-- User-facing text goes through the `useT()` hook with a key in `src/lib/i18n/messages.ts`.
+- User-facing text goes through the `useT()` hook with a key in `apps/web/src/lib/i18n/messages.ts`.
   Do not hardcode display strings in client components.
 - When you add a key, add it to **every** locale (`en` and `vi`) in the same change — never
   leave a locale missing a key. `en` is the fallback source of truth.

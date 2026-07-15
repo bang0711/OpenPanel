@@ -1,19 +1,22 @@
 # OpenPanel Roadmap
 
 Feature checklist for contributors. See `README.md` → **Conventions** for how to add a
-feature (backend `server/modules/<feature>/` with controller/service/schema/constant,
-frontend `lib/api/resources/<name>.resource.ts` + `endpoint.constant.ts`, components in
-`components/<feature>/`, a page under `app/(dashboard)/servers/[id]/<feature>/`, and a tab
-in `components/servers/server-nav.tsx`).
+feature (backend `apps/server/src/server/modules/<feature>/` with controller/service/schema/constant,
+frontend `apps/web/src/lib/api/resources/<name>.resource.ts` + `endpoint.constant.ts`, components in
+`apps/web/src/components/<feature>/`, a page under `apps/web/src/app/(dashboard)/servers/[id]/<feature>/`,
+and a tab in `components/servers/server-nav.tsx`).
 
 ## Shipped
 
+- [x] Monorepo split — `apps/web` (Next) + `apps/server` (Elysia on Bun) + `packages/shared`;
+      same-origin proxy (`proxy.ts`) forwards `/api/*` to the backend, auth + Prisma backend-only
+- [x] Docker — single root `Dockerfile` (server/web targets) + `docker-compose.yml` (`open-panel` images)
 - [x] Auth — multi-user, roles (Better Auth admin plugin), `proxy.ts` gate + per-route check
 - [x] Server registry — SSH creds encrypted at rest, TOFU host-key pinning, password/key upload
 - [x] System dashboard — CPU / RAM / disk / load / uptime (5s poll)
 - [x] Services & processes — systemctl start/stop/restart/enable/disable, journal logs, ps/kill
 - [x] File manager (SFTP) — browse, edit, upload, download, chmod, rename, mkdir, delete
-- [x] Web terminal — xterm ⇄ standalone ws bridge + short-TTL ticket
+- [x] Web terminal — xterm ⇄ in-process Elysia `.ws()` ssh bridge + short-TTL ticket
 - [x] Packages — apt/dnf/apk list, search, install, remove, update index
 - [x] App catalog — curated one-click installs (nginx, docker, postgres, redis, node, …)
 - [x] Dark mode + theme toggle

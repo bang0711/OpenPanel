@@ -1,0 +1,60 @@
+# OpenPanel — runs prebuilt images (Postgres + API server + web).
+# One Docker Hub repo "open-panel", two role tags built from the root Dockerfile:
+#   docker build --target server -t ${IMAGE:-open-panel}:server .
+#   docker build --target web    -t ${IMAGE:-open-panel}:web \
+#     --build-arg NEXT_PUBLIC_WS_URL=ws://localhost:3001/api/terminal .
+#   docker push ${IMAGE:-open-panel}:server && docker push ${IMAGE:-open-panel}:web
+#
+# Then on any host:  docker compose up -d
+#   (set IMAGE to your Docker Hub repo, e.g. IMAGE=youruser/open-panel)
+#
+# Secrets default to a dev value; override via a root .env or the shell:
+#   BETTER_AUTH_SECRET, OPENPANEL_ENC_KEY  (32 bytes base64 each).
+
+x-secret-env: &secret-env
+  DATABASE_URL: postgresql://postgres:postgres@db:5432/open_panel
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-A6rDGQb4tp8TqXmx4NijcorWmiGKJT+Kzub9wkJo34I=}
+  OPENPANEL_ENC_KEY: ${OPENPANEL_ENC_KEY:-A6rDGQb4tp8TqXmx4NijcorWmiGKJT+Kzub9wkJo34I=}
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: open_panel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d open_panel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No host port publish: only the server container reaches it (db:5432).
+    # Add a mapping like "5433:5432" if you want to inspect it from the host.
+
+  server:
+    image: ${IMAGE:-open-panel}:server
+    environment:
+      <<: *secret-env
+      BETTER_AUTH_URL: http://localhost:3000
+      PORT: "3001"
+      WEB_ORIGIN: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+
+  web:
+    image: ${IMAGE:-open-panel}:web
+    environment:
+      # Server-side reach to the API over the compose network (proxy.ts + RSC).
+      API_BASE_URL: http://server:3001
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
