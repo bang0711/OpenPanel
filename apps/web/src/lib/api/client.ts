@@ -1,4 +1,10 @@
+import { AccessResource } from "./resources/access.resource";
+import { AlertsResource } from "./resources/alerts.resource";
+import { AuditResource } from "./resources/audit.resource";
+import { BackupsResource } from "./resources/backups.resource";
+import { BulkResource } from "./resources/bulk.resource";
 import { CatalogResource } from "./resources/catalog.resource";
+import { ChannelsResource } from "./resources/channels.resource";
 import { CronResource } from "./resources/cron.resource";
 import { DbResource } from "./resources/db.resource";
 import { DbBackupResource } from "./resources/db-backup.resource";
@@ -19,6 +25,7 @@ import { ServicesResource } from "./resources/services.resource";
 import { SshKeysResource } from "./resources/ssh-keys.resource";
 import { SslResource } from "./resources/ssl.resource";
 import { TerminalResource } from "./resources/terminal.resource";
+import { TokensResource } from "./resources/tokens.resource";
 import { UsersResource } from "./resources/users.resource";
 import { VhostResource } from "./resources/vhost.resource";
 
@@ -46,6 +53,13 @@ export class ApiClient {
   db = new DbResource();
   query = new QueryResource();
   dbBackup = new DbBackupResource();
+  alerts = new AlertsResource();
+  backups = new BackupsResource();
+  access = new AccessResource();
+  bulk = new BulkResource();
+  tokens = new TokensResource();
+  channels = new ChannelsResource();
+  audit = new AuditResource();
 }
 
 export const api = new ApiClient();

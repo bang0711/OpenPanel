@@ -1,4 +1,10 @@
+import { access } from "./dictionaries/access";
+import { alerts } from "./dictionaries/alerts";
+import { audit } from "./dictionaries/audit";
+import { backups } from "./dictionaries/backups";
+import { bulk } from "./dictionaries/bulk";
 import { catalog } from "./dictionaries/catalog";
+import { channels } from "./dictionaries/channels";
 import { common } from "./dictionaries/common";
 import { cron } from "./dictionaries/cron";
 import { db } from "./dictionaries/db";
@@ -20,6 +26,7 @@ import { services } from "./dictionaries/services";
 import { sshKeys } from "./dictionaries/ssh-keys";
 import { ssl } from "./dictionaries/ssl";
 import { terminal } from "./dictionaries/terminal";
+import { tokens } from "./dictionaries/tokens";
 import { users } from "./dictionaries/users";
 import { vhost } from "./dictionaries/vhost";
 import {
@@ -67,4 +74,11 @@ export const messages = merge(
   db,
   query,
   dbBackup,
+  alerts,
+  backups,
+  access,
+  bulk,
+  tokens,
+  channels,
+  audit,
 );

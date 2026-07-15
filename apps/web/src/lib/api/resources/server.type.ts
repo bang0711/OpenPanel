@@ -7,6 +7,7 @@ export type Server = {
   username: string;
   authType: "password" | "key";
   hostFingerprint: string | null;
+  tags: string[];
   createdAt: string;
 };
 
@@ -18,6 +19,7 @@ export type ServerCreateInput = {
   authType: "password" | "key";
   secret: string;
   passphrase?: string;
+  tags?: string[];
 };
 
 export type TestResult = {

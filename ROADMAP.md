@@ -56,7 +56,7 @@ and a tab in `components/servers/server-nav.tsx`).
 - [ ] Backup scheduler — files + db → local/S3
 - [ ] Cron `@reboot` / one-off `at` jobs
 - [ ] Bulk actions across multiple servers
-- [ ] Historical metric charts (needs metric storage/agent)
+- [x] Historical metric charts — recharts line charts (CPU/mem/disk) over 1h/24h/7d, backed by `MetricSample`
 - [ ] Alerts — disk full / service down → email/webhook
 
 ### Quality-of-life

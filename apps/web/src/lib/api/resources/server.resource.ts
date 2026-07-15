@@ -18,4 +18,9 @@ export class ServerResource {
   test(id: string) {
     return request<TestResult>("POST", API_ENDPOINT.SERVERS.TEST(id));
   }
+  setTags(id: string, tags: string[]) {
+    return request<Server>("PATCH", `${API_ENDPOINT.SERVERS.BY_ID(id)}/tags`, {
+      body: { tags },
+    });
+  }
 }

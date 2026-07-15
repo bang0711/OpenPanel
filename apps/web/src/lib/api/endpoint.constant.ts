@@ -18,6 +18,7 @@ export const API_ENDPOINT = {
   },
   METRICS: {
     ROOT: (id: string) => `${server(id)}/metrics`,
+    HISTORY: (id: string) => `${server(id)}/metrics/history`,
   },
   SERVICES: {
     ROOT: (id: string) => `${server(id)}/services`,

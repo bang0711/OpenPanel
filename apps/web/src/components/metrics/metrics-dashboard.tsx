@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useT } from "@/components/common/i18n-provider";
 
 import { DiskUsageCard } from "./disk-usage-card";
+import { MetricHistoryCharts } from "./metric-history-charts";
 import { MetricsToolbar } from "./metrics-toolbar";
 import { StatCard } from "./stat-card";
 
@@ -130,6 +131,8 @@ export function MetricsDashboard({ serverId }: { serverId: string }) {
           <DiskUsageCard disks={metrics.disks} />
         </>
       ) : null}
+
+      <MetricHistoryCharts serverId={serverId} />
     </div>
   );
 }

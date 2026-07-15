@@ -1,7 +1,13 @@
 import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 
+import { accessController } from "@/server/modules/access-mgmt/access-mgmt.controller";
+import { alertsController } from "@/server/modules/alerts/alerts.controller";
+import { auditController } from "@/server/modules/audit/audit.controller";
+import { backupsController } from "@/server/modules/backups/backups.controller";
+import { bulkController } from "@/server/modules/bulk/bulk.controller";
 import { catalogController } from "@/server/modules/catalog/catalog.controller";
+import { channelsController } from "@/server/modules/channels/channels.controller";
 import { cronController } from "@/server/modules/cron/cron.controller";
 import { dbController } from "@/server/modules/db/db.controller";
 import { dbBackupController } from "@/server/modules/db-backup/db-backup.controller";
@@ -23,6 +29,7 @@ import { sshKeysController } from "@/server/modules/ssh-keys/ssh-keys.controller
 import { sslController } from "@/server/modules/ssl/ssl.controller";
 import { terminalController } from "@/server/modules/terminal/terminal.controller";
 import { terminalWsController } from "@/server/modules/terminal/terminal.ws";
+import { tokensController } from "@/server/modules/tokens/tokens.controller";
 import { usersController } from "@/server/modules/users/users.controller";
 import { vhostController } from "@/server/modules/vhost/vhost.controller";
 
@@ -73,6 +80,13 @@ export const app = new Elysia({ prefix: "/api" })
   .use(dnsController)
   .use(dbController)
   .use(queryController)
-  .use(dbBackupController);
+  .use(dbBackupController)
+  .use(alertsController)
+  .use(backupsController)
+  .use(accessController)
+  .use(bulkController)
+  .use(tokensController)
+  .use(channelsController)
+  .use(auditController);
 
 export type App = typeof app;

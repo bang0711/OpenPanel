@@ -10,6 +10,11 @@ export const createServerBody = t.Object({
   authType: t.Union(AUTH_TYPES.map((a) => t.Literal(a))),
   secret: t.String({ minLength: 1 }),
   passphrase: t.Optional(t.String()),
+  tags: t.Optional(t.Array(t.String({ maxLength: 32 }), { maxItems: 20 })),
 });
 
 export type CreateServerBody = typeof createServerBody.static;
+
+export const tagsBody = t.Object({
+  tags: t.Array(t.String({ maxLength: 32 }), { maxItems: 20 }),
+});

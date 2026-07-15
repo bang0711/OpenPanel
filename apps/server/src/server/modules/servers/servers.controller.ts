@@ -4,7 +4,7 @@ import { authorize, loadOwnedServer } from "@/server/access";
 import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
-import { createServerBody } from "./servers.schema";
+import { createServerBody, tagsBody } from "./servers.schema";
 import { serversService } from "./servers.service";
 
 export const serversController = new Elysia({ prefix: "/servers" })
@@ -55,4 +55,15 @@ export const serversController = new Elysia({ prefix: "/servers" })
       }
     },
     { auth: true },
+  )
+
+  .patch(
+    "/:id/tags",
+    async ({ params, body, user, status }) => {
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      writeAudit(user.id, "server.setTags", gate.server.id);
+      return serversService.setTags(gate.server.id, body.tags);
+    },
+    { auth: true, body: tagsBody },
   );
