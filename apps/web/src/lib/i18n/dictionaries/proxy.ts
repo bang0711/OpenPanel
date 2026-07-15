@@ -1,0 +1,46 @@
+import type { LocaleDict } from "../types";
+
+export const proxy: LocaleDict = {
+  en: {
+    "proxy.notInstalled": "nginx not installed",
+    "proxy.notInstalledHint":
+      "Install it from the Packages or Catalog tab to manage reverse proxies.",
+    "proxy.add": "Add proxy",
+    "proxy.dialogTitle": "New reverse proxy",
+    "proxy.name": "Name",
+    "proxy.serverName": "Server name",
+    "proxy.upstreamHost": "Upstream host",
+    "proxy.upstreamPort": "Upstream port",
+    "proxy.colName": "Name",
+    "proxy.colServerName": "Server name",
+    "proxy.colUpstream": "Upstream",
+    "proxy.empty": "No proxies.",
+    "proxy.created": "Proxy created",
+    "proxy.createFailed": "Create failed",
+    "proxy.confirmDelete": "Delete this reverse proxy?",
+    "proxy.removed": "Proxy removed",
+    "proxy.removeFailed": "Remove failed",
+    "proxy.loadFailed": "Failed to load",
+  },
+  vi: {
+    "proxy.notInstalled": "Chưa cài nginx",
+    "proxy.notInstalledHint":
+      "Cài đặt từ tab Gói phần mềm hoặc Kho ứng dụng để quản lý reverse proxy.",
+    "proxy.add": "Thêm proxy",
+    "proxy.dialogTitle": "Reverse proxy mới",
+    "proxy.name": "Tên",
+    "proxy.serverName": "Tên máy chủ",
+    "proxy.upstreamHost": "Máy chủ đích",
+    "proxy.upstreamPort": "Cổng đích",
+    "proxy.colName": "Tên",
+    "proxy.colServerName": "Tên máy chủ",
+    "proxy.colUpstream": "Đích",
+    "proxy.empty": "Chưa có proxy.",
+    "proxy.created": "Đã tạo proxy",
+    "proxy.createFailed": "Tạo thất bại",
+    "proxy.confirmDelete": "Xóa reverse proxy này?",
+    "proxy.removed": "Đã xóa proxy",
+    "proxy.removeFailed": "Xóa thất bại",
+    "proxy.loadFailed": "Tải thất bại",
+  },
+};

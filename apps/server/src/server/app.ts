@@ -3,6 +3,9 @@ import { Elysia } from "elysia";
 
 import { catalogController } from "@/server/modules/catalog/catalog.controller";
 import { cronController } from "@/server/modules/cron/cron.controller";
+import { dbController } from "@/server/modules/db/db.controller";
+import { dbBackupController } from "@/server/modules/db-backup/db-backup.controller";
+import { dnsController } from "@/server/modules/dns/dns.controller";
 import { dockerController } from "@/server/modules/docker/docker.controller";
 import { fail2banController } from "@/server/modules/fail2ban/fail2ban.controller";
 import { filesController } from "@/server/modules/files/files.controller";
@@ -12,6 +15,8 @@ import { metricsController } from "@/server/modules/metrics/metrics.controller";
 import { packagesController } from "@/server/modules/packages/packages.controller";
 import { portsController } from "@/server/modules/ports/ports.controller";
 import { powerController } from "@/server/modules/power/power.controller";
+import { proxyController } from "@/server/modules/proxy/proxy.controller";
+import { queryController } from "@/server/modules/query/query.controller";
 import { serversController } from "@/server/modules/servers/servers.controller";
 import { servicesController } from "@/server/modules/services/services.controller";
 import { sshKeysController } from "@/server/modules/ssh-keys/ssh-keys.controller";
@@ -63,6 +68,11 @@ export const app = new Elysia({ prefix: "/api" })
   .use(usersController)
   .use(sslController)
   .use(dockerController)
-  .use(vhostController);
+  .use(vhostController)
+  .use(proxyController)
+  .use(dnsController)
+  .use(dbController)
+  .use(queryController)
+  .use(dbBackupController);
 
 export type App = typeof app;

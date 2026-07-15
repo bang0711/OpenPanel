@@ -1,5 +1,8 @@
 import { CatalogResource } from "./resources/catalog.resource";
 import { CronResource } from "./resources/cron.resource";
+import { DbResource } from "./resources/db.resource";
+import { DbBackupResource } from "./resources/db-backup.resource";
+import { DnsResource } from "./resources/dns.resource";
 import { DockerResource } from "./resources/docker.resource";
 import { Fail2banResource } from "./resources/fail2ban.resource";
 import { FilesResource } from "./resources/files.resource";
@@ -9,6 +12,8 @@ import { MetricsResource } from "./resources/metrics.resource";
 import { PackagesResource } from "./resources/packages.resource";
 import { PortsResource } from "./resources/ports.resource";
 import { PowerResource } from "./resources/power.resource";
+import { ProxyResource } from "./resources/proxy.resource";
+import { QueryResource } from "./resources/query.resource";
 import { ServerResource } from "./resources/server.resource";
 import { ServicesResource } from "./resources/services.resource";
 import { SshKeysResource } from "./resources/ssh-keys.resource";
@@ -36,6 +41,11 @@ export class ApiClient {
   ssl = new SslResource();
   docker = new DockerResource();
   vhost = new VhostResource();
+  proxy = new ProxyResource();
+  dns = new DnsResource();
+  db = new DbResource();
+  query = new QueryResource();
+  dbBackup = new DbBackupResource();
 }
 
 export const api = new ApiClient();

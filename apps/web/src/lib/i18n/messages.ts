@@ -1,6 +1,9 @@
 import { catalog } from "./dictionaries/catalog";
 import { common } from "./dictionaries/common";
 import { cron } from "./dictionaries/cron";
+import { db } from "./dictionaries/db";
+import { dbBackup } from "./dictionaries/db-backup";
+import { dns } from "./dictionaries/dns";
 import { docker } from "./dictionaries/docker";
 import { fail2ban } from "./dictionaries/fail2ban";
 import { files } from "./dictionaries/files";
@@ -10,6 +13,8 @@ import { metrics } from "./dictionaries/metrics";
 import { packages } from "./dictionaries/packages";
 import { ports } from "./dictionaries/ports";
 import { power } from "./dictionaries/power";
+import { proxy } from "./dictionaries/proxy";
+import { query } from "./dictionaries/query";
 import { servers } from "./dictionaries/servers";
 import { services } from "./dictionaries/services";
 import { sshKeys } from "./dictionaries/ssh-keys";
@@ -57,4 +62,9 @@ export const messages = merge(
   ssl,
   docker,
   vhost,
+  proxy,
+  dns,
+  db,
+  query,
+  dbBackup,
 );
