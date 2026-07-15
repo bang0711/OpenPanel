@@ -5,6 +5,7 @@ import { RiFolderAddLine, RiUploadLine } from "@remixicon/react";
 
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/components/common/i18n-provider";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 export function FileToolbar({
@@ -16,17 +17,18 @@ export function FileToolbar({
   onUpload: (file: File) => void;
   onRefresh: () => void;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex gap-1.5">
       <Button size="sm" variant="outline" onClick={onNewFolder}>
         <RiFolderAddLine />
-        New folder
+        {t("files.newFolder")}
       </Button>
       <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()}>
         <RiUploadLine />
-        Upload
+        {t("files.upload")}
       </Button>
       <input
         ref={inputRef}

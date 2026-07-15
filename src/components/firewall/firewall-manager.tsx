@@ -18,12 +18,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useT } from "@/components/common/i18n-provider";
 import { IconButton } from "@/components/common/icon-button";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 import { AddRuleDialog } from "./add-rule-dialog";
 
 export function FirewallManager({ serverId }: { serverId: string }) {
+  const t = useT();
   const [status, setStatus] = useState<FwStatus | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -31,9 +33,9 @@ export function FirewallManager({ serverId }: { serverId: string }) {
     try {
       setStatus(await api.firewall.status(serverId));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load");
+      toast.error(err instanceof ApiError ? err.message : t("firewall.loadFailed"));
     }
-  }, [serverId]);
+  }, [serverId, t]);
 
   useEffect(() => {
     load();
@@ -46,10 +48,10 @@ export function FirewallManager({ serverId }: { serverId: string }) {
       const r = status.active
         ? await api.firewall.disable(serverId)
         : await api.firewall.enable(serverId);
-      if (r.ok) toast.success(status.active ? "Firewall disabled" : "Firewall enabled");
-      else toast.error(r.output || "Failed");
+      if (r.ok) toast.success(status.active ? t("firewall.disabled") : t("firewall.enabled"));
+      else toast.error(r.output || t("firewall.failed"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed");
+      toast.error(err instanceof ApiError ? err.message : t("firewall.failed"));
     } finally {
       setBusy(false);
       load();
@@ -57,12 +59,12 @@ export function FirewallManager({ serverId }: { serverId: string }) {
   }
 
   async function remove(num: number) {
-    if (!confirm(`Delete rule ${num}?`)) return;
+    if (!confirm(t("firewall.confirmDelete").replace("{num}", String(num)))) return;
     try {
       await api.firewall.deleteRule(serverId, num);
-      toast.success("Rule deleted");
+      toast.success(t("firewall.ruleDeleted"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Delete failed");
+      toast.error(err instanceof ApiError ? err.message : t("firewall.deleteFailed"));
     } finally {
       load();
     }
@@ -71,9 +73,9 @@ export function FirewallManager({ serverId }: { serverId: string }) {
   if (status && !status.installed) {
     return (
       <Alert>
-        <AlertTitle>ufw not installed</AlertTitle>
+        <AlertTitle>{t("firewall.notInstalled")}</AlertTitle>
         <AlertDescription>
-          Install it from the Packages or Catalog tab to manage the firewall.
+          {t("firewall.notInstalledHint")}
         </AlertDescription>
       </Alert>
     );
@@ -83,9 +85,9 @@ export function FirewallManager({ serverId }: { serverId: string }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Status:</span>
+          <span className="text-xs text-muted-foreground">{t("firewall.status")}</span>
           <Badge variant={status?.active ? "secondary" : "outline"}>
-            {status?.active ? "active" : "inactive"}
+            {status?.active ? t("firewall.active") : t("firewall.inactive")}
           </Badge>
         </div>
         <div className="flex gap-2">
@@ -95,7 +97,7 @@ export function FirewallManager({ serverId }: { serverId: string }) {
             onClick={toggle}
             disabled={busy || !status}
           >
-            {status?.active ? "Disable" : "Enable"}
+            {status?.active ? t("firewall.disable") : t("firewall.enable")}
           </Button>
           <AddRuleDialog serverId={serverId} onAdded={load} />
           <RefreshButton onClick={load} />
@@ -106,11 +108,11 @@ export function FirewallManager({ serverId }: { serverId: string }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>To</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>From</TableHead>
-              <TableHead className="text-right">Delete</TableHead>
+              <TableHead className="w-12">{t("firewall.colNum")}</TableHead>
+              <TableHead>{t("firewall.colTo")}</TableHead>
+              <TableHead>{t("firewall.colAction")}</TableHead>
+              <TableHead>{t("firewall.colFrom")}</TableHead>
+              <TableHead className="text-right">{t("common.delete")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -130,7 +132,7 @@ export function FirewallManager({ serverId }: { serverId: string }) {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end">
-                    <IconButton label="Delete" onClick={() => remove(r.num)}>
+                    <IconButton label={t("common.delete")} onClick={() => remove(r.num)}>
                       <RiDeleteBinLine />
                     </IconButton>
                   </div>
@@ -143,7 +145,7 @@ export function FirewallManager({ serverId }: { serverId: string }) {
                   colSpan={5}
                   className="text-center text-xs text-muted-foreground"
                 >
-                  No rules.
+                  {t("firewall.empty")}
                 </TableCell>
               </TableRow>
             )}

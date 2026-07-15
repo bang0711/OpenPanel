@@ -1,0 +1,36 @@
+import type { LocaleDict } from "../types";
+
+export const metrics: LocaleDict = {
+  en: {
+    "metrics.status": "Status",
+    "metrics.uptime": "Uptime",
+    "metrics.load": "Load (1/5/15m)",
+    "metrics.memory": "Memory",
+    "metrics.vcpu": "vCPU",
+    "metrics.cannotReachServer": "Cannot reach server",
+    "metrics.loadFailed": "Failed to load metrics",
+    "metrics.connectionFailed": "Connection failed",
+    "metrics.connectionPinned": "Connected — host key pinned",
+    "metrics.connectionOk": "Connection OK",
+    "metrics.testConnection": "Test connection",
+    "metrics.testing": "Testing…",
+    "metrics.diskUsage": "Disk usage",
+    "metrics.noFilesystems": "No filesystems reported.",
+  },
+  vi: {
+    "metrics.status": "Trạng thái",
+    "metrics.uptime": "Thời gian hoạt động",
+    "metrics.load": "Tải (1/5/15 phút)",
+    "metrics.memory": "Bộ nhớ",
+    "metrics.vcpu": "vCPU",
+    "metrics.cannotReachServer": "Không thể kết nối máy chủ",
+    "metrics.loadFailed": "Không tải được số liệu",
+    "metrics.connectionFailed": "Kết nối thất bại",
+    "metrics.connectionPinned": "Đã kết nối — đã ghim khóa máy chủ",
+    "metrics.connectionOk": "Kết nối bình thường",
+    "metrics.testConnection": "Kiểm tra kết nối",
+    "metrics.testing": "Đang kiểm tra…",
+    "metrics.diskUsage": "Sử dụng ổ đĩa",
+    "metrics.noFilesystems": "Không có hệ thống tệp nào được báo cáo.",
+  },
+};

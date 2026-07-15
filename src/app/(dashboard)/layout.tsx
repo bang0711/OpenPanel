@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { LanguageToggle } from "@/components/common/language-toggle";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 
@@ -44,7 +45,8 @@ export default async function DashboardLayout({
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-1 h-full" />
             <span className="text-sm font-medium">OpenPanel</span>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1">
+              <LanguageToggle />
               <ThemeToggle />
             </div>
           </header>

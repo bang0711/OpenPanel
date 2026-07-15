@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, ApiError, type FileNode } from "@/lib/api";
 import { joinPath } from "@/lib/remote-path";
 
+import { useT } from "@/components/common/i18n-provider";
 import { TextInputDialog } from "@/components/common/text-input-dialog";
 
 import { FileBreadcrumb } from "./file-breadcrumb";
@@ -14,6 +15,7 @@ import { FileTable } from "./file-table";
 import { FileToolbar } from "./file-toolbar";
 
 export function FileManager({ serverId }: { serverId: string }) {
+  const t = useT();
   const [path, setPath] = useState("/");
   const [entries, setEntries] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,12 +34,12 @@ export function FileManager({ serverId }: { serverId: string }) {
         setEntries(listing.entries);
         setPath(listing.path);
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Failed to list");
+        toast.error(err instanceof ApiError ? err.message : t("files.listFailed"));
       } finally {
         setLoading(false);
       }
     },
-    [serverId, path],
+    [serverId, path, t],
   );
 
   useEffect(() => {
@@ -53,10 +55,10 @@ export function FileManager({ serverId }: { serverId: string }) {
         toast.success(okMessage);
         load();
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Operation failed");
+        toast.error(err instanceof ApiError ? err.message : t("common.failed"));
       }
     },
-    [load],
+    [load, t],
   );
 
   const editEntry = useCallback(
@@ -64,10 +66,10 @@ export function FileManager({ serverId }: { serverId: string }) {
       try {
         setEditing(await api.files.read(serverId, joinPath(path, entry.name)));
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Cannot open file");
+        toast.error(err instanceof ApiError ? err.message : t("files.cannotOpen"));
       }
     },
-    [serverId, path],
+    [serverId, path, t],
   );
 
   const openEntry = useCallback(
@@ -80,13 +82,13 @@ export function FileManager({ serverId }: { serverId: string }) {
 
   const deleteEntry = useCallback(
     async (entry: FileNode) => {
-      if (!confirm(`Delete ${entry.name}?`)) return;
+      if (!confirm(`${t("files.deleteConfirm")} ${entry.name}?`)) return;
       await run(
         () => api.files.remove(serverId, joinPath(path, entry.name)),
-        `Deleted ${entry.name}`,
+        `${t("files.deleted")} ${entry.name}`,
       );
     },
-    [run, serverId, path],
+    [run, serverId, path, t],
   );
 
   return (
@@ -96,7 +98,7 @@ export function FileManager({ serverId }: { serverId: string }) {
         <FileToolbar
           onNewFolder={() => setNewFolderOpen(true)}
           onUpload={(file) =>
-            run(() => api.files.upload(serverId, path, file), `Uploaded ${file.name}`)
+            run(() => api.files.upload(serverId, path, file), `${t("files.uploaded")} ${file.name}`)
           }
           onRefresh={() => load()}
         />
@@ -122,10 +124,10 @@ export function FileManager({ serverId }: { serverId: string }) {
 
       <TextInputDialog
         open={!!renameTarget}
-        title="Rename"
-        label="New name"
+        title={t("common.rename")}
+        label={t("files.newName")}
         initialValue={renameTarget?.name ?? ""}
-        submitLabel="Rename"
+        submitLabel={t("common.rename")}
         mono
         onClose={() => setRenameTarget(null)}
         onSubmit={(name) => {
@@ -138,7 +140,7 @@ export function FileManager({ serverId }: { serverId: string }) {
                 joinPath(path, renameTarget.name),
                 joinPath(path, name),
               ),
-            `Renamed to ${name}`,
+            `${t("files.renamedTo")} ${name}`,
           );
           setRenameTarget(null);
         }}
@@ -146,18 +148,18 @@ export function FileManager({ serverId }: { serverId: string }) {
 
       <TextInputDialog
         open={!!chmodTarget}
-        title="Permissions"
-        label="Octal mode"
+        title={t("files.permissions")}
+        label={t("files.octalMode")}
         placeholder="644"
         initialValue={chmodTarget?.mode ?? ""}
-        submitLabel="Apply"
+        submitLabel={t("common.apply")}
         mono
         onClose={() => setChmodTarget(null)}
         onSubmit={(mode) => {
           if (!chmodTarget) return;
           run(
             () => api.files.chmod(serverId, joinPath(path, chmodTarget.name), mode),
-            `Set ${chmodTarget.name} to ${mode}`,
+            `${t("files.set")} ${chmodTarget.name} ${t("files.to")} ${mode}`,
           );
           setChmodTarget(null);
         }}
@@ -165,13 +167,13 @@ export function FileManager({ serverId }: { serverId: string }) {
 
       <TextInputDialog
         open={newFolderOpen}
-        title="New folder"
-        label="Name"
+        title={t("files.newFolder")}
+        label={t("common.name")}
         placeholder="my-folder"
-        submitLabel="Create"
+        submitLabel={t("files.create")}
         onClose={() => setNewFolderOpen(false)}
         onSubmit={(name) => {
-          if (name) run(() => api.files.mkdir(serverId, joinPath(path, name)), `Created ${name}`);
+          if (name) run(() => api.files.mkdir(serverId, joinPath(path, name)), `${t("files.created")} ${name}`);
           setNewFolderOpen(false);
         }}
       />

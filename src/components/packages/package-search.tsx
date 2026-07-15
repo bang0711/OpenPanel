@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/table";
 
 import { CommandOutputDialog } from "@/components/common/command-output-dialog";
+import { useT } from "@/components/common/i18n-provider";
 
 export function PackageSearch({ serverId }: { serverId: string }) {
+  const t = useT();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export function PackageSearch({ serverId }: { serverId: string }) {
       const r = await api.packages.search(serverId, q);
       setResults(r.results);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Search failed");
+      toast.error(err instanceof ApiError ? err.message : t("packages.searchFailed"));
     } finally {
       setLoading(false);
     }
@@ -47,10 +49,10 @@ export function PackageSearch({ serverId }: { serverId: string }) {
     try {
       const r = await api.packages.install(serverId, name);
       setOutput({ title: `install ${name}`, body: r.output });
-      if (r.ok) toast.success(`Installed ${name}`);
-      else toast.error("Install failed — see output");
+      if (r.ok) toast.success(t("packages.installed").replace("{name}", name));
+      else toast.error(t("packages.installFailedOutput"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Install failed");
+      toast.error(err instanceof ApiError ? err.message : t("packages.installFailed"));
     } finally {
       setInstalling(null);
     }
@@ -60,14 +62,14 @@ export function PackageSearch({ serverId }: { serverId: string }) {
     <div className="space-y-3">
       <form onSubmit={onSearch} className="flex gap-2">
         <Input
-          placeholder="Search packages (e.g. nginx)…"
+          placeholder={t("packages.searchPlaceholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="max-w-sm"
         />
         <Button type="submit" size="sm" disabled={loading}>
           <RiSearchLine />
-          {loading ? "Searching…" : "Search"}
+          {loading ? t("packages.searching") : t("common.search")}
         </Button>
       </form>
 
@@ -76,9 +78,9 @@ export function PackageSearch({ serverId }: { serverId: string }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Package</TableHead>
-                <TableHead className="hidden md:table-cell">Summary</TableHead>
-                <TableHead className="text-right">Install</TableHead>
+                <TableHead>{t("packages.col.package")}</TableHead>
+                <TableHead className="hidden md:table-cell">{t("packages.col.summary")}</TableHead>
+                <TableHead className="text-right">{t("common.install")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -97,7 +99,7 @@ export function PackageSearch({ serverId }: { serverId: string }) {
                         onClick={() => install(r.name)}
                       >
                         <RiDownloadLine />
-                        {installing === r.name ? "Installing…" : "Install"}
+                        {installing === r.name ? t("common.installing") : t("common.install")}
                       </Button>
                     </div>
                   </TableCell>
@@ -109,7 +111,7 @@ export function PackageSearch({ serverId }: { serverId: string }) {
                     colSpan={3}
                     className="text-center text-xs text-muted-foreground"
                   >
-                    No results.
+                    {t("packages.noResults")}
                   </TableCell>
                 </TableRow>
               )}

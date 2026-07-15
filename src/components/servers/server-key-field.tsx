@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/components/common/i18n-provider";
+
 /** Private-key input: paste into the textarea or upload a key file. */
 export function ServerKeyField({
   value,
@@ -15,6 +17,7 @@ export function ServerKeyField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useT();
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -25,11 +28,11 @@ export function ServerKeyField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <Label htmlFor="server-key">Private key</Label>
+        <Label htmlFor="server-key">{t("servers.privateKey")}</Label>
         <Button asChild size="xs" variant="outline">
           <label className="cursor-pointer">
             <RiUploadLine />
-            Upload file
+            {t("servers.uploadFile")}
             <input
               type="file"
               className="hidden"
@@ -46,7 +49,7 @@ export function ServerKeyField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="font-mono text-xs"
-        placeholder="-----BEGIN OPENSSH PRIVATE KEY----- (paste or upload)"
+        placeholder={t("servers.keyPlaceholder")}
       />
     </div>
   );

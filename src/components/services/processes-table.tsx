@@ -10,6 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useT } from "@/components/common/i18n-provider";
+
 import { ProcessRow } from "./process-row";
 
 export function ProcessesTable({
@@ -19,17 +21,24 @@ export function ProcessesTable({
   procs: ProcessInfo[];
   onKill: (pid: number, signal: KillSignalName) => void;
 }) {
+  const t = useT();
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-16">PID</TableHead>
-            <TableHead>User</TableHead>
-            <TableHead className="text-right">CPU%</TableHead>
-            <TableHead className="text-right">MEM%</TableHead>
-            <TableHead>Command</TableHead>
-            <TableHead className="text-right">Kill</TableHead>
+            <TableHead className="w-16">{t("services.proc.col.pid")}</TableHead>
+            <TableHead>{t("services.proc.col.user")}</TableHead>
+            <TableHead className="text-right">
+              {t("services.proc.col.cpu")}
+            </TableHead>
+            <TableHead className="text-right">
+              {t("services.proc.col.mem")}
+            </TableHead>
+            <TableHead>{t("services.proc.col.command")}</TableHead>
+            <TableHead className="text-right">
+              {t("services.proc.col.kill")}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

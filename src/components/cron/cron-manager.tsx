@@ -15,33 +15,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useT } from "@/components/common/i18n-provider";
 import { IconButton } from "@/components/common/icon-button";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 import { AddCronDialog } from "./add-cron-dialog";
 
 export function CronManager({ serverId }: { serverId: string }) {
+  const t = useT();
   const [jobs, setJobs] = useState<CronJob[] | null>(null);
 
   const load = useCallback(async () => {
     try {
       setJobs(await api.cron.list(serverId));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load");
+      toast.error(err instanceof ApiError ? err.message : t("cron.loadFailed"));
     }
-  }, [serverId]);
+  }, [serverId, t]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   async function remove(index: number) {
-    if (!confirm("Delete this cron job?")) return;
+    if (!confirm(t("cron.confirmDelete"))) return;
     try {
       await api.cron.remove(serverId, index);
-      toast.success("Job removed");
+      toast.success(t("cron.removed"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Delete failed");
+      toast.error(err instanceof ApiError ? err.message : t("cron.deleteFailed"));
     } finally {
       load();
     }
@@ -51,7 +53,7 @@ export function CronManager({ serverId }: { serverId: string }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          Crontab for the SSH user.
+          {t("cron.description")}
         </p>
         <div className="flex gap-2">
           <AddCronDialog serverId={serverId} onAdded={load} />
@@ -63,9 +65,9 @@ export function CronManager({ serverId }: { serverId: string }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">Schedule</TableHead>
-              <TableHead>Command</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-40">{t("cron.schedule")}</TableHead>
+              <TableHead>{t("cron.command")}</TableHead>
+              <TableHead className="text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -77,7 +79,7 @@ export function CronManager({ serverId }: { serverId: string }) {
                 <TableCell className="font-mono text-xs">{j.command}</TableCell>
                 <TableCell>
                   <div className="flex justify-end">
-                    <IconButton label="Delete" onClick={() => remove(j.index)}>
+                    <IconButton label={t("common.delete")} onClick={() => remove(j.index)}>
                       <RiDeleteBinLine />
                     </IconButton>
                   </div>
@@ -90,7 +92,7 @@ export function CronManager({ serverId }: { serverId: string }) {
                   colSpan={3}
                   className="text-center text-xs text-muted-foreground"
                 >
-                  No cron jobs.
+                  {t("cron.empty")}
                 </TableCell>
               </TableRow>
             )}

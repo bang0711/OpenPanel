@@ -8,10 +8,12 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { useT } from "@/components/common/i18n-provider";
 import { Logo } from "@/components/common/logo";
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export default function LoginPage() {
     const { error } = await authClient.signIn.email({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message ?? "Sign in failed");
+      setError(error.message ?? t("auth.failed"));
       return;
     }
     router.push("/");
@@ -43,13 +45,13 @@ export default function LoginPage() {
           </div>
           <h1 className="text-lg font-semibold">OpenPanel</h1>
           <p className="text-xs text-muted-foreground">
-            Sign in to manage your servers.
+            {t("app.signInPrompt")}
           </p>
         </div>
 
         <div className="space-y-2">
           <label htmlFor="email" className="text-xs font-medium">
-            Email
+            {t("auth.email")}
           </label>
           <Input
             id="email"
@@ -63,7 +65,7 @@ export default function LoginPage() {
 
         <div className="space-y-2">
           <label htmlFor="password" className="text-xs font-medium">
-            Password
+            {t("auth.password")}
           </label>
           <Input
             id="password"
@@ -78,7 +80,7 @@ export default function LoginPage() {
         {error && <p className="text-xs text-destructive">{error}</p>}
 
         <Button type="submit" size="lg" className="w-full" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
       </form>
     </main>

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { Toaster } from "@/components/ui/sonner";
 
+import { I18nProvider } from "@/components/common/i18n-provider";
 import { ThemeProvider } from "@/components/common/theme-provider";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
@@ -76,8 +77,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <Toaster />
+          <I18nProvider>
+            {children}
+            <Toaster />
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

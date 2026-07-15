@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { useT } from "@/components/common/i18n-provider";
+
 type Proto = "any" | FwProtocol;
 
 export function AddRuleDialog({
@@ -28,6 +30,7 @@ export function AddRuleDialog({
   serverId: string;
   onAdded: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<FwAction>("allow");
   const [proto, setProto] = useState<Proto>("any");
@@ -45,11 +48,11 @@ export function AddRuleDialog({
         port,
         proto === "any" ? undefined : proto,
       );
-      toast.success("Rule added");
+      toast.success(t("firewall.ruleAdded"));
       setOpen(false);
       onAdded();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to add rule");
+      toast.error(err instanceof ApiError ? err.message : t("firewall.addFailed"));
     } finally {
       setSaving(false);
     }
@@ -60,31 +63,31 @@ export function AddRuleDialog({
       <DialogTrigger asChild>
         <Button size="sm">
           <RiAddLine />
-          Add rule
+          {t("firewall.add")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={onSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>New firewall rule</DialogTitle>
+            <DialogTitle>{t("firewall.dialogTitle")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-1.5">
-            <Label>Action</Label>
+            <Label>{t("firewall.action")}</Label>
             <Tabs value={action} onValueChange={(v) => setAction(v as FwAction)}>
               <TabsList className="w-full">
                 <TabsTrigger value="allow" className="flex-1">
-                  Allow
+                  {t("firewall.allow")}
                 </TabsTrigger>
                 <TabsTrigger value="deny" className="flex-1">
-                  Deny
+                  {t("firewall.deny")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="port">Port</Label>
+            <Label htmlFor="port">{t("firewall.port")}</Label>
             <Input
               id="port"
               name="port"
@@ -97,17 +100,17 @@ export function AddRuleDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Protocol</Label>
+            <Label>{t("firewall.protocol")}</Label>
             <Tabs value={proto} onValueChange={(v) => setProto(v as Proto)}>
               <TabsList className="w-full">
                 <TabsTrigger value="any" className="flex-1">
-                  Any
+                  {t("firewall.any")}
                 </TabsTrigger>
                 <TabsTrigger value="tcp" className="flex-1">
-                  TCP
+                  {t("firewall.tcp")}
                 </TabsTrigger>
                 <TabsTrigger value="udp" className="flex-1">
-                  UDP
+                  {t("firewall.udp")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -115,7 +118,7 @@ export function AddRuleDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Add rule"}
+              {saving ? t("common.saving") : t("firewall.add")}
             </Button>
           </DialogFooter>
         </form>

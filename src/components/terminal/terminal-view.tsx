@@ -8,8 +8,16 @@ import type { Terminal } from "@xterm/xterm";
 
 import { api, ApiError } from "@/lib/api";
 
+import { useT } from "@/components/common/i18n-provider";
+
 export function TerminalView({ serverId }: { serverId: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const t = useT();
+  // Ref so a locale switch doesn't re-run the effect and drop the session.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   useEffect(() => {
     let disposed = false;
@@ -42,7 +50,7 @@ export function TerminalView({ serverId }: { serverId: string }) {
         ticket = (await api.terminal.ticket(serverId)).ticket;
       } catch (err) {
         term.writeln(
-          err instanceof ApiError ? err.message : "Failed to get ticket",
+          err instanceof ApiError ? err.message : tRef.current("terminal.ticketFailed"),
         );
         return;
       }
@@ -64,7 +72,8 @@ export function TerminalView({ serverId }: { serverId: string }) {
         if (typeof ev.data === "string") term.write(ev.data);
         else term.write(new Uint8Array(ev.data as ArrayBuffer));
       };
-      ws.onclose = () => term?.writeln("\r\n\x1b[31m[connection closed]\x1b[0m");
+      ws.onclose = () =>
+        term?.writeln(`\r\n\x1b[31m${tRef.current("terminal.closed")}\x1b[0m`);
 
       term.onData((d) => {
         if (ws?.readyState === WebSocket.OPEN) {

@@ -7,10 +7,12 @@ import { api, ApiError } from "@/lib/api";
 import { CATALOG_APPS, type CatalogApp } from "@/lib/catalog";
 
 import { CommandOutputDialog } from "@/components/common/command-output-dialog";
+import { useT } from "@/components/common/i18n-provider";
 
 import { CatalogAppCard } from "./catalog-app-card";
 
 export function AppCatalog({ serverId }: { serverId: string }) {
+  const t = useT();
   // App metadata is bundled at build time — the grid renders instantly.
   const [installed, setInstalled] = useState<Record<string, boolean>>({});
   const [installing, setInstalling] = useState<string | null>(null);
@@ -23,9 +25,9 @@ export function AppCatalog({ serverId }: { serverId: string }) {
       const r = await api.catalog.status(serverId);
       setInstalled(r.installed);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load status");
+      toast.error(err instanceof ApiError ? err.message : t("catalog.statusFailed"));
     }
-  }, [serverId]);
+  }, [serverId, t]);
 
   useEffect(() => {
     loadStatus();
@@ -37,16 +39,16 @@ export function AppCatalog({ serverId }: { serverId: string }) {
       try {
         const r = await api.catalog.install(serverId, app.id);
         setOutput({ title: `install ${app.name}`, body: r.output });
-        if (r.ok) toast.success(`${app.name} installed`);
-        else toast.error("Install failed — see output");
+        if (r.ok) toast.success(t("catalog.installed").replace("{name}", app.name));
+        else toast.error(t("catalog.installFailedOutput"));
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Install failed");
+        toast.error(err instanceof ApiError ? err.message : t("catalog.installFailed"));
       } finally {
         setInstalling(null);
         loadStatus();
       }
     },
-    [serverId, loadStatus],
+    [serverId, loadStatus, t],
   );
 
   return (

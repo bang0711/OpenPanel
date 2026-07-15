@@ -57,8 +57,9 @@ in `components/servers/server-nav.tsx`).
 - [ ] Alerts — disk full / service down → email/webhook
 
 ### Quality-of-life
+- [x] i18n — `useT()` + per-feature dictionaries (en, vi) covering all components,
+      language switcher with SVG flags
 - [ ] Server groups / tags, global search
-- [ ] i18n
 - [ ] Mobile-responsive polish
 - [ ] Email/webhook notifications
 

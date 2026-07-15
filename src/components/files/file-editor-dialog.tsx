@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/components/common/i18n-provider";
+
 export function FileEditorDialog({
   serverId,
   file,
@@ -24,6 +26,7 @@ export function FileEditorDialog({
   file: { path: string; content: string } | null;
   onClose: () => void;
 }) {
+  const t = useT();
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -36,10 +39,10 @@ export function FileEditorDialog({
     setSaving(true);
     try {
       await api.files.write(serverId, file.path, content);
-      toast.success("Saved");
+      toast.success(t("files.saved"));
       onClose();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Save failed");
+      toast.error(err instanceof ApiError ? err.message : t("files.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -59,10 +62,10 @@ export function FileEditorDialog({
         />
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

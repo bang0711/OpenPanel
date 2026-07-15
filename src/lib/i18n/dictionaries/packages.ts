@@ -1,0 +1,58 @@
+import type { LocaleDict } from "../types";
+
+export const packages: LocaleDict = {
+  en: {
+    "packages.tab.installed": "Installed",
+    "packages.tab.search": "Search & install",
+
+    "packages.filterPlaceholder": "Filter installed…",
+    "packages.updateIndex": "Update index",
+    "packages.col.package": "Package",
+    "packages.col.version": "Version",
+    "packages.noManager": "No package manager detected.",
+    "packages.noMatch": "No packages match.",
+    "packages.removeConfirm": "Remove {name}?",
+    "packages.removed": "Removed {name}",
+    "packages.removeFailedOutput": "Remove failed — see output",
+    "packages.loadFailed": "Failed to load",
+    "packages.removeFailed": "Remove failed",
+    "packages.indexRefreshed": "Package index refreshed",
+    "packages.refreshFailed": "Refresh failed",
+
+    "packages.searchPlaceholder": "Search packages (e.g. nginx)…",
+    "packages.searching": "Searching…",
+    "packages.col.summary": "Summary",
+    "packages.installed": "Installed {name}",
+    "packages.installFailedOutput": "Install failed — see output",
+    "packages.searchFailed": "Search failed",
+    "packages.installFailed": "Install failed",
+    "packages.noResults": "No results.",
+  },
+  vi: {
+    "packages.tab.installed": "Đã cài đặt",
+    "packages.tab.search": "Tìm & cài đặt",
+
+    "packages.filterPlaceholder": "Lọc gói đã cài…",
+    "packages.updateIndex": "Cập nhật chỉ mục",
+    "packages.col.package": "Gói",
+    "packages.col.version": "Phiên bản",
+    "packages.noManager": "Không phát hiện trình quản lý gói.",
+    "packages.noMatch": "Không có gói nào khớp.",
+    "packages.removeConfirm": "Gỡ bỏ {name}?",
+    "packages.removed": "Đã gỡ bỏ {name}",
+    "packages.removeFailedOutput": "Gỡ bỏ thất bại — xem kết quả",
+    "packages.loadFailed": "Tải thất bại",
+    "packages.removeFailed": "Gỡ bỏ thất bại",
+    "packages.indexRefreshed": "Đã làm mới chỉ mục gói",
+    "packages.refreshFailed": "Làm mới thất bại",
+
+    "packages.searchPlaceholder": "Tìm gói (ví dụ: nginx)…",
+    "packages.searching": "Đang tìm…",
+    "packages.col.summary": "Tóm tắt",
+    "packages.installed": "Đã cài đặt {name}",
+    "packages.installFailedOutput": "Cài đặt thất bại — xem kết quả",
+    "packages.searchFailed": "Tìm kiếm thất bại",
+    "packages.installFailed": "Cài đặt thất bại",
+    "packages.noResults": "Không có kết quả.",
+  },
+};

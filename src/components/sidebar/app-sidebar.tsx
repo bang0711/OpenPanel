@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+import { useT } from "@/components/common/i18n-provider";
 import { Logo } from "@/components/common/logo";
 
 import {
@@ -33,6 +34,7 @@ export function AppSidebar({
   user: SidebarUser;
 }) {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -49,7 +51,7 @@ export function AppSidebar({
                     OpenPanel
                   </span>
                   <span className="truncate text-[0.625rem] text-muted-foreground">
-                    Server manager
+                    {t("app.tagline")}
                   </span>
                 </div>
               </Link>
@@ -60,18 +62,18 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("nav.overview")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/"}
-                  tooltip="Servers"
+                  tooltip={t("nav.servers")}
                 >
                   <Link href="/">
                     <RiDashboardLine />
-                    <span>Servers</span>
+                    <span>{t("nav.servers")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

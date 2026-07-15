@@ -7,12 +7,14 @@ import { api, ApiError, type ServiceActionName,type ServiceUnit } from "@/lib/ap
 
 import { Input } from "@/components/ui/input";
 
+import { useT } from "@/components/common/i18n-provider";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 import { ServiceLogsDialog } from "./service-logs-dialog";
 import { ServicesTable } from "./services-table";
 
 export function ServicesTab({ serverId }: { serverId: string }) {
+  const t = useT();
   const [units, setUnits] = useState<ServiceUnit[] | null>(null);
   const [filter, setFilter] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -22,9 +24,11 @@ export function ServicesTab({ serverId }: { serverId: string }) {
     try {
       setUnits(await api.services.list(serverId));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load");
+      toast.error(
+        err instanceof ApiError ? err.message : t("services.loadFailed"),
+      );
     }
-  }, [serverId]);
+  }, [serverId, t]);
 
   useEffect(() => {
     load();
@@ -45,23 +49,29 @@ export function ServicesTab({ serverId }: { serverId: string }) {
       setBusyKey(unit + action);
       try {
         const result = await api.services.action(serverId, unit, action);
-        if (result.ok) toast.success(`${unit}: ${action} ok`);
-        else toast.error(result.output || `${action} failed`);
+        if (result.ok)
+          toast.success(`${unit}: ${action} ${t("services.actionOk")}`);
+        else
+          toast.error(result.output || `${action} ${t("services.actionFailed")}`);
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : `${action} failed`);
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : `${action} ${t("services.actionFailed")}`,
+        );
       } finally {
         setBusyKey(null);
         load();
       }
     },
-    [serverId, load],
+    [serverId, load, t],
   );
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <Input
-          placeholder="Filter services…"
+          placeholder={t("services.filterPlaceholder")}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-xs"

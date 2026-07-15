@@ -18,10 +18,12 @@ import {
 } from "@/components/ui/table";
 
 import { CommandOutputDialog } from "@/components/common/command-output-dialog";
+import { useT } from "@/components/common/i18n-provider";
 import { IconButton } from "@/components/common/icon-button";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 export function InstalledPackages({ serverId }: { serverId: string }) {
+  const t = useT();
   const [pkgs, setPkgs] = useState<InstalledPackage[] | null>(null);
   const [manager, setManager] = useState<PkgManager | null>(null);
   const [filter, setFilter] = useState("");
@@ -36,9 +38,9 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
       setPkgs(r.packages);
       setManager(r.manager);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load");
+      toast.error(err instanceof ApiError ? err.message : t("packages.loadFailed"));
     }
-  }, [serverId]);
+  }, [serverId, t]);
 
   useEffect(() => {
     load();
@@ -52,15 +54,15 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
   }, [pkgs, filter]);
 
   async function remove(name: string) {
-    if (!confirm(`Remove ${name}?`)) return;
+    if (!confirm(t("packages.removeConfirm").replace("{name}", name))) return;
     setBusy(true);
     try {
       const r = await api.packages.remove(serverId, name);
       setOutput({ title: `remove ${name}`, body: r.output });
-      if (r.ok) toast.success(`Removed ${name}`);
-      else toast.error("Remove failed — see output");
+      if (r.ok) toast.success(t("packages.removed").replace("{name}", name));
+      else toast.error(t("packages.removeFailedOutput"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Remove failed");
+      toast.error(err instanceof ApiError ? err.message : t("packages.removeFailed"));
     } finally {
       setBusy(false);
       load();
@@ -72,9 +74,9 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
     try {
       const r = await api.packages.refresh(serverId);
       setOutput({ title: "refresh package index", body: r.output });
-      toast.success("Package index refreshed");
+      toast.success(t("packages.indexRefreshed"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Refresh failed");
+      toast.error(err instanceof ApiError ? err.message : t("packages.refreshFailed"));
     } finally {
       setBusy(false);
     }
@@ -85,7 +87,7 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Filter installed…"
+            placeholder={t("packages.filterPlaceholder")}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="max-w-xs"
@@ -93,7 +95,7 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
           {manager && <Badge variant="secondary">{manager}</Badge>}
         </div>
         <div className="flex gap-2">
-          <RefreshButton onClick={refreshIndex} label="Update index" />
+          <RefreshButton onClick={refreshIndex} label={t("packages.updateIndex")} />
           <RefreshButton onClick={load} />
         </div>
       </div>
@@ -102,9 +104,9 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Package</TableHead>
-              <TableHead>Version</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("packages.col.package")}</TableHead>
+              <TableHead>{t("packages.col.version")}</TableHead>
+              <TableHead className="text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,7 +119,7 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
                 <TableCell>
                   <div className="flex justify-end">
                     <IconButton
-                      label="Remove"
+                      label={t("common.remove")}
                       disabled={busy}
                       onClick={() => remove(p.name)}
                     >
@@ -134,8 +136,8 @@ export function InstalledPackages({ serverId }: { serverId: string }) {
                   className="text-center text-xs text-muted-foreground"
                 >
                   {pkgs.length === 0
-                    ? "No package manager detected."
-                    : "No packages match."}
+                    ? t("packages.noManager")
+                    : t("packages.noMatch")}
                 </TableCell>
               </TableRow>
             )}

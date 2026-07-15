@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useT } from "@/components/common/i18n-provider";
+
 import { FileRow } from "./file-row";
 
 export function FileTable({
@@ -34,15 +36,16 @@ export function FileTable({
   onChmod: (entry: FileNode) => void;
   onDelete: (entry: FileNode) => void;
 }) {
+  const t = useT();
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead className="text-right">Size</TableHead>
-            <TableHead className="w-20">Mode</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>{t("common.name")}</TableHead>
+            <TableHead className="text-right">{t("files.size")}</TableHead>
+            <TableHead className="w-20">{t("files.mode")}</TableHead>
+            <TableHead className="text-right">{t("common.actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -65,7 +68,7 @@ export function FileTable({
                 colSpan={4}
                 className="text-center text-xs text-muted-foreground"
               >
-                {loading ? "Loading…" : "Empty directory"}
+                {loading ? t("common.loading") : t("files.empty")}
               </TableCell>
             </TableRow>
           )}

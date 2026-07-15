@@ -13,14 +13,17 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+import { useT } from "@/components/common/i18n-provider";
+
 export type SidebarServer = { id: string; name: string; host: string };
 
 export function SidebarServerList({ servers }: { servers: SidebarServer[] }) {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Hosts</SidebarGroupLabel>
+      <SidebarGroupLabel>{t("nav.hosts")}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {servers.map((s) => (
@@ -39,7 +42,7 @@ export function SidebarServerList({ servers }: { servers: SidebarServer[] }) {
           ))}
           {servers.length === 0 && (
             <p className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-              No servers yet
+              {t("common.noServers")}
             </p>
           )}
         </SidebarMenu>

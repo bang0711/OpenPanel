@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useT } from "@/components/common/i18n-provider";
+
 import { ServiceRow } from "./service-row";
 
 export function ServicesTable({
@@ -24,15 +26,18 @@ export function ServicesTable({
   onAction: (unit: string, action: ServiceActionName) => void;
   onLogs: (unit: string) => void;
 }) {
+  const t = useT();
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Unit</TableHead>
-            <TableHead>State</TableHead>
-            <TableHead className="hidden md:table-cell">Description</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>{t("services.col.unit")}</TableHead>
+            <TableHead>{t("services.col.state")}</TableHead>
+            <TableHead className="hidden md:table-cell">
+              {t("services.col.description")}
+            </TableHead>
+            <TableHead className="text-right">{t("common.actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -51,7 +56,7 @@ export function ServicesTable({
                 colSpan={4}
                 className="text-center text-xs text-muted-foreground"
               >
-                No services match.
+                {t("services.empty")}
               </TableCell>
             </TableRow>
           )}

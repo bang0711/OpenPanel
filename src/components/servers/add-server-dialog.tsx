@@ -21,11 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { useT } from "@/components/common/i18n-provider";
+
 import { ServerKeyField } from "./server-key-field";
 
 type AuthType = "password" | "key";
 
 export function AddServerDialog() {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [authType, setAuthType] = useState<AuthType>("password");
@@ -47,13 +50,13 @@ export function AddServerDialog() {
           authType === "password" ? String(form.get("password")) : keyText,
         passphrase: String(form.get("passphrase") || "") || undefined,
       });
-      toast.success("Server added");
+      toast.success(t("servers.added"));
       setOpen(false);
       setKeyText("");
       router.refresh();
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.message : "Failed to add server",
+        err instanceof ApiError ? err.message : t("servers.addFailed"),
       );
     } finally {
       setSaving(false);
@@ -65,30 +68,30 @@ export function AddServerDialog() {
       <DialogTrigger asChild>
         <Button size="lg">
           <RiAddLine />
-          Add server
+          {t("common.addServer")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={onSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>New server</DialogTitle>
+            <DialogTitle>{t("servers.newServer")}</DialogTitle>
             <DialogDescription>
-              Credentials are encrypted at rest before storage.
+              {t("servers.encryptedNote")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-1.5">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t("common.name")}</Label>
             <Input id="name" name="name" required placeholder="prod-web-1" />
           </div>
 
           <div className="grid grid-cols-[1fr_auto] gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="host">Host</Label>
+              <Label htmlFor="host">{t("servers.host")}</Label>
               <Input id="host" name="host" required placeholder="203.0.113.10" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="port">Port</Label>
+              <Label htmlFor="port">{t("servers.port")}</Label>
               <Input
                 id="port"
                 name="port"
@@ -100,22 +103,22 @@ export function AddServerDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">{t("servers.username")}</Label>
             <Input id="username" name="username" required placeholder="root" />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Authentication</Label>
+            <Label>{t("servers.authentication")}</Label>
             <Tabs
               value={authType}
               onValueChange={(v) => setAuthType(v as AuthType)}
             >
               <TabsList className="w-full">
                 <TabsTrigger value="password" className="flex-1">
-                  Password
+                  {t("servers.password")}
                 </TabsTrigger>
                 <TabsTrigger value="key" className="flex-1">
-                  Private key
+                  {t("servers.privateKey")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -123,14 +126,14 @@ export function AddServerDialog() {
 
           {authType === "password" ? (
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("servers.password")}</Label>
               <Input id="password" name="password" type="password" required />
             </div>
           ) : (
             <>
               <ServerKeyField value={keyText} onChange={setKeyText} />
               <div className="space-y-1.5">
-                <Label htmlFor="passphrase">Passphrase (optional)</Label>
+                <Label htmlFor="passphrase">{t("servers.passphraseOptional")}</Label>
                 <Input id="passphrase" name="passphrase" type="password" />
               </div>
             </>
@@ -138,7 +141,7 @@ export function AddServerDialog() {
 
           <DialogFooter>
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save server"}
+              {saving ? t("common.saving") : t("servers.saveServer")}
             </Button>
           </DialogFooter>
         </form>

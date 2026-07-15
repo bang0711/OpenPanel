@@ -19,6 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useT } from "@/components/common/i18n-provider";
+
 export function AddCronDialog({
   serverId,
   onAdded,
@@ -26,6 +28,7 @@ export function AddCronDialog({
   serverId: string;
   onAdded: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -39,11 +42,11 @@ export function AddCronDialog({
         String(form.get("schedule")),
         String(form.get("command")),
       );
-      toast.success("Cron job added");
+      toast.success(t("cron.added"));
       setOpen(false);
       onAdded();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to add job");
+      toast.error(err instanceof ApiError ? err.message : t("cron.addFailed"));
     } finally {
       setSaving(false);
     }
@@ -54,19 +57,19 @@ export function AddCronDialog({
       <DialogTrigger asChild>
         <Button size="sm">
           <RiAddLine />
-          Add job
+          {t("cron.add")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={onSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>New cron job</DialogTitle>
+            <DialogTitle>{t("cron.dialogTitle")}</DialogTitle>
             <DialogDescription>
-              Schedule uses 5 fields (min hour dom mon dow) or an @keyword.
+              {t("cron.dialogDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
-            <Label htmlFor="schedule">Schedule</Label>
+            <Label htmlFor="schedule">{t("cron.schedule")}</Label>
             <Input
               id="schedule"
               name="schedule"
@@ -76,7 +79,7 @@ export function AddCronDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="command">Command</Label>
+            <Label htmlFor="command">{t("cron.command")}</Label>
             <Input
               id="command"
               name="command"
@@ -87,7 +90,7 @@ export function AddCronDialog({
           </div>
           <DialogFooter>
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Add job"}
+              {saving ? t("common.saving") : t("cron.add")}
             </Button>
           </DialogFooter>
         </form>

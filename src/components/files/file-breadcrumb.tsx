@@ -4,6 +4,7 @@ import { RiArrowUpLine,RiHome2Line } from "@remixicon/react";
 
 import { parentOf } from "@/lib/remote-path";
 
+import { useT } from "@/components/common/i18n-provider";
 import { IconButton } from "@/components/common/icon-button";
 
 export function FileBreadcrumb({
@@ -13,15 +14,16 @@ export function FileBreadcrumb({
   path: string;
   onNavigate: (path: string) => void;
 }) {
+  const t = useT();
   const crumbs = path.split("/").filter(Boolean);
 
   return (
     <div className="flex items-center gap-1 text-xs">
-      <IconButton label="Home" onClick={() => onNavigate("/")}>
+      <IconButton label={t("files.home")} onClick={() => onNavigate("/")}>
         <RiHome2Line />
       </IconButton>
       <IconButton
-        label="Up"
+        label={t("files.up")}
         onClick={() => onNavigate(parentOf(path))}
         disabled={path === "/"}
       >

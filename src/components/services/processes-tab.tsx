@@ -5,20 +5,24 @@ import { toast } from "sonner";
 
 import { api, ApiError, type KillSignalName,type ProcessInfo } from "@/lib/api";
 
+import { useT } from "@/components/common/i18n-provider";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 import { ProcessesTable } from "./processes-table";
 
 export function ProcessesTab({ serverId }: { serverId: string }) {
+  const t = useT();
   const [procs, setProcs] = useState<ProcessInfo[] | null>(null);
 
   const load = useCallback(async () => {
     try {
       setProcs(await api.services.processes(serverId));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load");
+      toast.error(
+        err instanceof ApiError ? err.message : t("services.loadFailed"),
+      );
     }
-  }, [serverId]);
+  }, [serverId, t]);
 
   useEffect(() => {
     load();
@@ -28,15 +32,18 @@ export function ProcessesTab({ serverId }: { serverId: string }) {
     async (pid: number, signal: KillSignalName) => {
       try {
         const result = await api.services.kill(serverId, pid, signal);
-        if (result.ok) toast.success(`Sent SIG${signal} to ${pid}`);
-        else toast.error(result.output || "kill failed");
+        if (result.ok)
+          toast.success(`${t("services.proc.killSent")} SIG${signal} → ${pid}`);
+        else toast.error(result.output || t("services.proc.killFailed"));
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "kill failed");
+        toast.error(
+          err instanceof ApiError ? err.message : t("services.proc.killFailed"),
+        );
       } finally {
         load();
       }
     },
-    [serverId, load],
+    [serverId, load, t],
   );
 
   return (

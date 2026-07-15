@@ -55,3 +55,11 @@ Whenever you add or change a feature, in the **same change**:
 - Update `ROADMAP.md` — check off the shipped item / move it out of "Planned".
 - Update `README.md` — reflect any new stack, script, env var, structure, or convention.
 Do not consider a feature done until both docs are updated.
+
+## i18n — keep all locales in sync (required)
+- User-facing text goes through the `useT()` hook with a key in `src/lib/i18n/messages.ts`.
+  Do not hardcode display strings in client components.
+- When you add a key, add it to **every** locale (`en` and `vi`) in the same change — never
+  leave a locale missing a key. `en` is the fallback source of truth.
+- Adding a new locale: add it to `LOCALES`, `LOCALE_NAMES`, a full dictionary, and an inline
+  SVG flag in `components/common/flag-icon.tsx` (emoji flags don't render on Windows).

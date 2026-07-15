@@ -12,33 +12,35 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { ActionTooltip } from "@/components/common/action-tooltip";
+import { useT } from "@/components/common/i18n-provider";
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();
+  const t = useT();
 
   return (
     <DropdownMenu>
-      <ActionTooltip label="Theme">
+      <ActionTooltip label={t("common.theme")}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon-sm">
             <RiSunLine className="dark:hidden" />
             <RiMoonLine className="hidden dark:block" />
-            <span className="sr-only">Toggle theme</span>
+            <span className="sr-only">{t("common.theme")}</span>
           </Button>
         </DropdownMenuTrigger>
       </ActionTooltip>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")}>
           <RiSunLine />
-          Light
+          {t("theme.light")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>
           <RiMoonLine />
-          Dark
+          {t("theme.dark")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")}>
           <RiComputerLine />
-          System
+          {t("theme.system")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

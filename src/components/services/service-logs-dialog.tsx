@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+import { useT } from "@/components/common/i18n-provider";
+
 export function ServiceLogsDialog({
   serverId,
   unit,
@@ -21,18 +23,21 @@ export function ServiceLogsDialog({
   unit: string | null;
   onClose: () => void;
 }) {
-  const [logs, setLogs] = useState("Loading…");
+  const t = useT();
+  const [logs, setLogs] = useState(t("common.loading"));
 
   useEffect(() => {
     if (!unit) return;
-    setLogs("Loading…");
+    setLogs(t("common.loading"));
     api.services
       .logs(serverId, unit)
-      .then((d) => setLogs(d.logs || "No logs"))
+      .then((d) => setLogs(d.logs || t("services.logs.none")))
       .catch((err) =>
-        setLogs(err instanceof ApiError ? err.message : "Failed to load logs"),
+        setLogs(
+          err instanceof ApiError ? err.message : t("services.logs.failed"),
+        ),
       );
-  }, [serverId, unit]);
+  }, [serverId, unit, t]);
 
   return (
     <Dialog open={!!unit} onOpenChange={(o) => !o && onClose()}>

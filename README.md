@@ -110,6 +110,9 @@ src/
 `components/common/` (`IconButton`, `ActionTooltip`, `RefreshButton`, `TextInputDialog`,
 `ServerStatusBadge`). Tooltips use `ActionTooltip` (shadcn), never the native `title`.
 
+**i18n** — user-facing text goes through `useT()` with a key in `src/lib/i18n/messages.ts`;
+add every key to all locales (`en`, `vi`). Language switcher (SVG flags) is in the header.
+
 **Imports** — grouped and ordered (enforced by `eslint-plugin-simple-import-sort`):
 1. side-effect imports (CSS)
 2. react / next / external packages

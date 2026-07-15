@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { ActionTooltip } from "@/components/common/action-tooltip";
+import { useT } from "@/components/common/i18n-provider";
 import { IconButton } from "@/components/common/icon-button";
 
 export function ServiceActions({
@@ -34,36 +35,37 @@ export function ServiceActions({
   onAction: (action: ServiceActionName) => void;
   onLogs: () => void;
 }) {
+  const t = useT();
   const busy = (a: string) => busyKey === unit + a;
 
   return (
     <div className="flex justify-end gap-1">
       <IconButton
-        label="Start"
+        label={t("services.action.start")}
         onClick={() => onAction("start")}
         disabled={busy("start")}
       >
         <RiPlayLine />
       </IconButton>
       <IconButton
-        label="Restart"
+        label={t("services.action.restart")}
         onClick={() => onAction("restart")}
         disabled={busy("restart")}
       >
         <RiLoopRightLine />
       </IconButton>
       <IconButton
-        label="Stop"
+        label={t("services.action.stop")}
         onClick={() => onAction("stop")}
         disabled={busy("stop")}
       >
         <RiStopLine />
       </IconButton>
-      <IconButton label="Logs" onClick={onLogs}>
+      <IconButton label={t("services.action.logs")} onClick={onLogs}>
         <RiFileTextLine />
       </IconButton>
       <DropdownMenu>
-        <ActionTooltip label="More">
+        <ActionTooltip label={t("services.action.more")}>
           <DropdownMenuTrigger asChild>
             <Button size="icon-sm" variant="ghost">
               <RiMore2Line />
@@ -73,11 +75,11 @@ export function ServiceActions({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onAction("enable")}>
             <RiCheckboxCircleLine />
-            Enable (on boot)
+            {t("services.action.enable")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onAction("disable")}>
             <RiForbidLine />
-            Disable (on boot)
+            {t("services.action.disable")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

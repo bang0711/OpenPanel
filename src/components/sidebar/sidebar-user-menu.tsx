@@ -20,6 +20,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+import { useT } from "@/components/common/i18n-provider";
+
 export type SidebarUser = {
   email: string;
   name?: string | null;
@@ -28,6 +30,7 @@ export type SidebarUser = {
 
 export function SidebarUserMenu({ user }: { user: SidebarUser }) {
   const router = useRouter();
+  const t = useT();
 
   return (
     <SidebarMenu>
@@ -67,7 +70,7 @@ export function SidebarUserMenu({ user }: { user: SidebarUser }) {
               }}
             >
               <RiLogoutBoxRLine />
-              Sign out
+              {t("auth.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

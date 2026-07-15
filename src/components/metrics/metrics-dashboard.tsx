@@ -12,6 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { useT } from "@/components/common/i18n-provider";
+
 import { DiskUsageCard } from "./disk-usage-card";
 import { MetricsToolbar } from "./metrics-toolbar";
 import { StatCard } from "./stat-card";
@@ -22,6 +24,7 @@ function percent(used: number, total: number) {
 
 export function MetricsDashboard({ serverId }: { serverId: string }) {
   const router = useRouter();
+  const t = useT();
   const [metrics, setMetrics] = useState<ServerMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,12 +35,14 @@ export function MetricsDashboard({ serverId }: { serverId: string }) {
       setMetrics(await api.metrics.get(serverId));
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load metrics");
+      setError(
+        err instanceof ApiError ? err.message : t("metrics.loadFailed"),
+      );
       setMetrics(null);
     } finally {
       setLoading(false);
     }
-  }, [serverId]);
+  }, [serverId, t]);
 
   useEffect(() => {
     load();
@@ -50,11 +55,15 @@ export function MetricsDashboard({ serverId }: { serverId: string }) {
     try {
       const result = await api.server.test(serverId);
       toast.success(
-        result.pinned ? "Connected — host key pinned" : "Connection OK",
+        result.pinned
+          ? t("metrics.connectionPinned")
+          : t("metrics.connectionOk"),
       );
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Connection failed");
+      toast.error(
+        err instanceof ApiError ? err.message : t("metrics.connectionFailed"),
+      );
     } finally {
       setTesting(false);
     }
@@ -71,7 +80,7 @@ export function MetricsDashboard({ serverId }: { serverId: string }) {
 
       {error && (
         <Alert variant="destructive">
-          <AlertTitle>Cannot reach server</AlertTitle>
+          <AlertTitle>{t("metrics.cannotReachServer")}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -87,23 +96,23 @@ export function MetricsDashboard({ serverId }: { serverId: string }) {
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={<RiPulseLine className="size-4" />}
-              title="Status"
+              title={t("metrics.status")}
               value={metrics.systemStatus}
             />
             <StatCard
               icon={<RiRefreshLine className="size-4" />}
-              title="Uptime"
+              title={t("metrics.uptime")}
               value={formatUptime(metrics.uptimeSeconds)}
             />
             <StatCard
               icon={<RiCpuLine className="size-4" />}
-              title="Load (1/5/15m)"
+              title={t("metrics.load")}
               value={metrics.load.map((l) => l.toFixed(2)).join(" / ")}
-              sub={`${metrics.cpuCount} vCPU`}
+              sub={`${metrics.cpuCount} ${t("metrics.vcpu")}`}
             />
             <StatCard
               icon={<RiHardDriveLine className="size-4" />}
-              title="Memory"
+              title={t("metrics.memory")}
               value={`${formatBytes(metrics.memory.usedBytes)} / ${formatBytes(
                 metrics.memory.totalBytes,
               )}`}
