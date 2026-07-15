@@ -1,0 +1,48 @@
+import type { LocaleDict } from "../types";
+
+export const ssl: LocaleDict = {
+  en: {
+    "ssl.notInstalled": "certbot not installed",
+    "ssl.notInstalledHint":
+      "Install it from the Packages or Catalog tab to manage SSL certificates.",
+    "ssl.issue": "Issue certificate",
+    "ssl.dialogTitle": "Issue SSL certificate",
+    "ssl.domain": "Domain",
+    "ssl.email": "Email",
+    "ssl.renew": "Renew",
+    "ssl.renewAll": "Renew all",
+    "ssl.colName": "Name",
+    "ssl.colDomains": "Domains",
+    "ssl.colExpiry": "Expiry",
+    "ssl.valid": "valid",
+    "ssl.expired": "expired",
+    "ssl.empty": "No certificates.",
+    "ssl.issued": "Certificate issued",
+    "ssl.issueFailed": "Failed to issue certificate",
+    "ssl.renewed": "Certificates renewed",
+    "ssl.renewFailed": "Renew failed",
+    "ssl.loadFailed": "Failed to load",
+  },
+  vi: {
+    "ssl.notInstalled": "Chưa cài certbot",
+    "ssl.notInstalledHint":
+      "Cài đặt từ tab Gói phần mềm hoặc Kho ứng dụng để quản lý chứng chỉ SSL.",
+    "ssl.issue": "Cấp chứng chỉ",
+    "ssl.dialogTitle": "Cấp chứng chỉ SSL",
+    "ssl.domain": "Tên miền",
+    "ssl.email": "Email",
+    "ssl.renew": "Gia hạn",
+    "ssl.renewAll": "Gia hạn tất cả",
+    "ssl.colName": "Tên",
+    "ssl.colDomains": "Tên miền",
+    "ssl.colExpiry": "Hết hạn",
+    "ssl.valid": "hợp lệ",
+    "ssl.expired": "hết hạn",
+    "ssl.empty": "Chưa có chứng chỉ.",
+    "ssl.issued": "Đã cấp chứng chỉ",
+    "ssl.issueFailed": "Cấp chứng chỉ thất bại",
+    "ssl.renewed": "Đã gia hạn chứng chỉ",
+    "ssl.renewFailed": "Gia hạn thất bại",
+    "ssl.loadFailed": "Tải thất bại",
+  },
+};

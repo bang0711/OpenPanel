@@ -15,9 +15,15 @@ model User {
   banReason  String?
   banExpires DateTime?
 
-  sessions Session[]
-  accounts Account[]
-  servers  Server[]
+  sessions             Session[]
+  accounts             Account[]
+  servers              Server[]
+  permissions          ServerPermission[]
+  apiTokens            ApiToken[]
+  auditLogs            AuditLog[]
+  notificationChannels NotificationChannel[]
+  alertRules           AlertRule[]
+  backupJobs           BackupJob[]
 
   @@map("user")
 }

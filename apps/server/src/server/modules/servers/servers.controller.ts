@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 
-import { loadOwnedServer } from "@/server/access";
+import { authorize, loadOwnedServer } from "@/server/access";
+import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
 import { createServerBody } from "./servers.schema";
@@ -29,8 +30,10 @@ export const serversController = new Elysia({ prefix: "/servers" })
   .delete(
     "/:id",
     async ({ params, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "admin");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "server.delete", server.id);
       return serversService.remove(server.id);
     },
     { auth: true },
@@ -39,8 +42,10 @@ export const serversController = new Elysia({ prefix: "/servers" })
   .post(
     "/:id/test",
     async ({ params, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "server.test", server.id);
       try {
         return await serversService.testAndPin(server);
       } catch (err) {

@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 
-import { loadOwnedServer } from "@/server/access";
+import { authorize, loadOwnedServer } from "@/server/access";
+import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
 import { ruleBody } from "./firewall.schema";
@@ -32,8 +33,10 @@ export const firewallController = new Elysia({
   .post(
     "/rule",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "firewall.setRule", server.id);
       try {
         return await firewallService.setRule(
           server,
@@ -54,8 +57,10 @@ export const firewallController = new Elysia({
       const num = Number(params.num);
       if (!Number.isInteger(num) || num < 1)
         return status(400, { error: "Invalid rule" });
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "admin");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "firewall.deleteRule", server.id);
       try {
         return await firewallService.deleteRule(server, num);
       } catch (err) {
@@ -68,8 +73,10 @@ export const firewallController = new Elysia({
   .post(
     "/enable",
     async ({ params, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "firewall.enable", server.id);
       try {
         return await firewallService.enable(server);
       } catch (err) {
@@ -82,8 +89,10 @@ export const firewallController = new Elysia({
   .post(
     "/disable",
     async ({ params, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "admin");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "firewall.disable", server.id);
       try {
         return await firewallService.disable(server);
       } catch (err) {

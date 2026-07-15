@@ -1,0 +1,14 @@
+// Audit trail of privileged (write/admin) actions.
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serverId  String?
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("audit_log")
+}

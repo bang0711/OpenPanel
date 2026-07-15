@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 
-import { loadOwnedServer } from "@/server/access";
+import { authorize, loadOwnedServer } from "@/server/access";
+import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
 import { installBody } from "./catalog.schema";
@@ -30,8 +31,10 @@ export const catalogController = new Elysia({ prefix: "/servers/:id/catalog" })
   .post(
     "/install",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "catalog.install", server.id);
       try {
         return await catalogService.install(server, body.id);
       } catch (err) {

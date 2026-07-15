@@ -1,0 +1,15 @@
+// Outbound notification channels (webhook only for now). Used by alerts.
+
+model NotificationChannel {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   @default("webhook")
+  url       String
+  createdAt DateTime @default(now())
+
+  alertRules AlertRule[]
+
+  @@map("notification_channel")
+}

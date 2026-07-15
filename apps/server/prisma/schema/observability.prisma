@@ -1,0 +1,35 @@
+// Time-series metric samples (written by the metric-sampler scheduler job)
+// and alert rules evaluated against them.
+
+model MetricSample {
+  id          String   @id @default(uuid())
+  serverId    String
+  server      Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  cpuLoad     Float // 1-min loadavg
+  memUsedPct  Float
+  diskUsedPct Float // max mount usage %
+  createdAt   DateTime @default(now())
+
+  @@index([serverId, createdAt])
+  @@map("metric_sample")
+}
+
+model AlertRule {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serverId      String
+  server        Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  metric        String // 'cpu' | 'mem' | 'disk' | 'service'
+  op            String // '>' | '<'
+  threshold     Float // for service: 0 = must be active
+  target        String? // service unit name when metric = 'service'
+  channelId     String?
+  channel       NotificationChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  enabled       Boolean  @default(true)
+  firing        Boolean  @default(false)
+  lastNotifiedAt DateTime?
+  createdAt     DateTime @default(now())
+
+  @@map("alert_rule")
+}
