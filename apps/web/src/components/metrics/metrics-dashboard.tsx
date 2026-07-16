@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { RiCpuLine, RiHardDriveLine, RiPulseLine,RiRefreshLine } from "@remixicon/react";
 import { toast } from "sonner";
@@ -15,9 +16,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useT } from "@/components/common/i18n-provider";
 
 import { DiskUsageCard } from "./disk-usage-card";
-import { MetricHistoryCharts } from "./metric-history-charts";
 import { MetricsToolbar } from "./metrics-toolbar";
 import { StatCard } from "./stat-card";
+
+// recharts is ~352K raw / 101K gzip and these charts sit below the fold behind
+// a range toggle, but this is the default server tab — so a static import made
+// every visit download and parse the whole charting library before first paint.
+// Loading it on demand keeps it off the critical path (xterm does the same).
+const MetricHistoryCharts = dynamic(
+  () => import("./metric-history-charts").then((m) => m.MetricHistoryCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid gap-3 md:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-[232px]" />
+        ))}
+      </div>
+    ),
+  },
+);
 
 function percent(used: number, total: number) {
   return total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
@@ -47,8 +65,17 @@ export function MetricsDashboard({ serverId }: { serverId: string }) {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 5000);
-    return () => clearInterval(t);
+    // Each tick is a real SSH round-trip to the managed host, so don't poll a
+    // tab nobody is looking at; refresh immediately when it comes back.
+    const tick = () => {
+      if (!document.hidden) load();
+    };
+    const timer = setInterval(tick, 5000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, [load]);
 
   async function testConnection() {

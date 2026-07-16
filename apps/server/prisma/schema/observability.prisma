@@ -11,6 +11,10 @@ model MetricSample {
   createdAt   DateTime @default(now())
 
   @@index([serverId, createdAt])
+  // Retention pruning filters on createdAt alone. Postgres has no skip scan, so
+  // the composite index above (serverId first) cannot serve that predicate and
+  // the delete would seq-scan the whole table.
+  @@index([createdAt])
   @@map("metric_sample")
 }
 

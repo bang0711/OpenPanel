@@ -1,7 +1,10 @@
 import { metricsService } from "@/server/modules/metrics/metrics.service";
+import { serversService } from "@/server/modules/servers/servers.service";
 import { prisma } from "@/db/prisma";
 
-const RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // keep 7 days of samples
+import { isPruneDue, retentionCutoff } from "./retention";
+
+let lastPrunedAt = 0;
 
 // Poll every registered server once and store a compact metric sample.
 // Sequential to bound concurrent SSH load; unreachable hosts are skipped.
@@ -22,11 +25,19 @@ export async function sampleMetrics(): Promise<void> {
           diskUsedPct,
         },
       });
+      // Backfill the distro for servers registered before osId existed (and
+      // for hosts that were reinstalled). Only while null, so it costs one
+      // extra command once per server, not every tick.
+      if (!server.osId) await serversService.detectOs(server);
     } catch {
       // host unreachable this tick — skip
     }
   }
-  await prisma.metricSample.deleteMany({
-    where: { createdAt: { lt: new Date(Date.now() - RETENTION_MS) } },
-  });
+  const now = Date.now();
+  if (isPruneDue(now, lastPrunedAt)) {
+    lastPrunedAt = now;
+    await prisma.metricSample.deleteMany({
+      where: { createdAt: { lt: retentionCutoff(now) } },
+    });
+  }
 }
