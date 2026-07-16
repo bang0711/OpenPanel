@@ -1,13 +1,34 @@
+import { access } from "./dictionaries/access";
+import { alerts } from "./dictionaries/alerts";
+import { audit } from "./dictionaries/audit";
+import { backups } from "./dictionaries/backups";
+import { bulk } from "./dictionaries/bulk";
 import { catalog } from "./dictionaries/catalog";
+import { channels } from "./dictionaries/channels";
 import { common } from "./dictionaries/common";
 import { cron } from "./dictionaries/cron";
+import { db } from "./dictionaries/db";
+import { dbBackup } from "./dictionaries/db-backup";
+import { dns } from "./dictionaries/dns";
+import { docker } from "./dictionaries/docker";
+import { fail2ban } from "./dictionaries/fail2ban";
 import { files } from "./dictionaries/files";
 import { firewall } from "./dictionaries/firewall";
+import { logs } from "./dictionaries/logs";
 import { metrics } from "./dictionaries/metrics";
 import { packages } from "./dictionaries/packages";
+import { ports } from "./dictionaries/ports";
+import { power } from "./dictionaries/power";
+import { proxy } from "./dictionaries/proxy";
+import { query } from "./dictionaries/query";
 import { servers } from "./dictionaries/servers";
 import { services } from "./dictionaries/services";
+import { sshKeys } from "./dictionaries/ssh-keys";
+import { ssl } from "./dictionaries/ssl";
 import { terminal } from "./dictionaries/terminal";
+import { tokens } from "./dictionaries/tokens";
+import { users } from "./dictionaries/users";
+import { vhost } from "./dictionaries/vhost";
 import {
   DEFAULT_LOCALE,
   type Dict,
@@ -39,4 +60,25 @@ export const messages = merge(
   cron,
   firewall,
   terminal,
+  ports,
+  fail2ban,
+  sshKeys,
+  logs,
+  power,
+  users,
+  ssl,
+  docker,
+  vhost,
+  proxy,
+  dns,
+  db,
+  query,
+  dbBackup,
+  alerts,
+  backups,
+  access,
+  bulk,
+  tokens,
+  channels,
+  audit,
 );

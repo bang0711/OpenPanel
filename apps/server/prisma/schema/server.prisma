@@ -12,7 +12,13 @@ model Server {
   secretEnc       String // AES-256-GCM blob (password or private key)
   passphraseEnc   String? // optional, for encrypted keys
   hostFingerprint String? // pinned SHA256 host key (TOFU)
+  tags            String[] @default([])
   createdAt       DateTime @default(now())
+
+  permissions   ServerPermission[]
+  metricSamples MetricSample[]
+  alertRules    AlertRule[]
+  backupJobs    BackupJob[]
 
   @@map("server")
 }

@@ -34,8 +34,15 @@ Put each feature in `apps/server/src/server/modules/<feature>/`, split into:
 - `<feature>.schema.ts` — Elysia `t` validation schemas.
 - `<feature>.constant.ts` — allowlists / constants / validation helpers.
 Mount the controller in `apps/server/src/server/app.ts`. Guard every route with the
-`auth`/`admin` macro and `loadOwnedServer` for server-scoped routes. Cross-boundary code
-(shared by web + server, e.g. catalog metadata) lives in `packages/shared` (`@openpanel/shared`).
+`auth`/`admin` macro. Server-scoped routes gate through **`authorize(serverId, user, action)`**
+(`src/server/access.ts`) — `action` is `"read"` for GETs, `"write"` for mutations, `"admin"`
+for destructive ops; it returns a `{ok,server}|{ok:false,code,error}` gate (owner/global-admin
+bypass, else per-server `ServerPermission`). `loadOwnedServer` remains as the read shortcut.
+Record privileged actions with `writeAudit(user.id, "<feature>.<action>", server.id)`. Personal
+**API tokens** authenticate via `Authorization: Bearer` (see `plugins/auth.ts`). Background work
+goes through the in-process scheduler: add a job in `src/server/jobs/` and register it in
+`jobs/index.ts` (runs via `setInterval`, single instance). Cross-boundary code (shared by web +
+server, e.g. catalog metadata) lives in `packages/shared` (`@openpanel/shared`).
 
 ## Frontend — API client & components
 - All backend calls go through `apps/web/src/lib/api` — `api.<resource>.<method>()`. **Never**

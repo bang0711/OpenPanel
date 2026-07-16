@@ -1,0 +1,20 @@
+// Scheduled backup jobs (files via tar, db via mysqldump/pg_dump), run by the
+// backup-runner scheduler job.
+
+model BackupJob {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serverId     String
+  server       Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  kind         String // 'files' | 'db'
+  source       String // path (files) or db name (db)
+  target       String // remote directory to write dumps into
+  intervalMins Int       @default(1440)
+  enabled      Boolean   @default(true)
+  lastRunAt    DateTime?
+  lastStatus   String?
+  createdAt    DateTime  @default(now())
+
+  @@map("backup_job")
+}

@@ -1,0 +1,14 @@
+// Personal API tokens for automation. Only the SHA-256 hash is stored;
+// the plaintext is shown once at creation.
+
+model ApiToken {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  tokenHash  String    @unique
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("api_token")
+}

@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 
-import { loadOwnedServer } from "@/server/access";
+import { authorize, loadOwnedServer } from "@/server/access";
+import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
 import { isValidUnit } from "./services.constant";
@@ -33,8 +34,10 @@ export const servicesController = new Elysia({ prefix: "/servers/:id" })
     async ({ params, body, user, status }) => {
       if (!isValidUnit(params.name))
         return status(400, { error: "Invalid service name" });
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "service.action", server.id);
       try {
         return await servicesService.action(server, params.name, body.action);
       } catch (err) {
@@ -81,8 +84,10 @@ export const servicesController = new Elysia({ prefix: "/servers/:id" })
       const pid = Number(params.pid);
       if (!Number.isInteger(pid) || pid <= 1)
         return status(400, { error: "Invalid pid" });
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "admin");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "process.kill", server.id);
       try {
         return await servicesService.kill(server, pid, body.signal);
       } catch (err) {

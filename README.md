@@ -1,10 +1,16 @@
 # OpenPanel
 
-A cPanel-style web panel to manage **remote Linux servers over SSH** — system dashboard,
-service/process control, packages & one-click app catalog, cron, firewall (ufw), an SFTP
-file manager, and an interactive web terminal.
+A cPanel-style web panel to manage **remote Linux servers over SSH** — system dashboard +
+historical metric charts, service/process control, packages & one-click app catalog, cron,
+firewall (ufw) & fail2ban, open ports, SSH keys, SSL (certbot), nginx virtual hosts &
+reverse proxies, DNS zones, database manager / query console / backups, system users, Docker,
+log viewer, power controls, an SFTP file manager, and an interactive web terminal.
 
-See `ROADMAP.md` for the full feature checklist and what's planned next.
+Cross-cutting: **per-server RBAC** (capability matrix + read-only role), **API tokens**,
+**audit log**, **alerts** (metric/service rules → webhook), **scheduled backups**, and
+**bulk actions** across servers — powered by an in-process background scheduler.
+
+See `ROADMAP.md` for the full feature checklist and what's deferred.
 
 ## Stack
 
@@ -17,7 +23,9 @@ Bun-workspace **monorepo**: `apps/web` (frontend) + `apps/server` (backend) + `p
 | Backend | Standalone Elysia server on Bun (`apps/server`), HTTP API + terminal ws under `/api/*` |
 | Runtime / pkg mgr | Bun (Node used only for the `tsx` seed script) |
 | API docs | `@elysiajs/openapi` → Scalar at **`http://localhost:3001/api/docs`** |
-| Auth | Better Auth (email/password + admin plugin), on the backend |
+| Auth | Better Auth (email/password + admin plugin) + Bearer **API tokens**; per-server RBAC via `authorize(user, server, action)` |
+| Background jobs | In-process scheduler (`apps/server/src/server/scheduler.ts`): metric sampler, alert poller, backup runner |
+| Charts | recharts (historical CPU/mem/disk from the `MetricSample` table) |
 | Web ⇄ backend | Same-origin: the browser calls `/api/*`; `proxy.ts` forwards to the backend at runtime (`API_BASE_URL`). No CORS, no API URL in the client bundle |
 | Database | PostgreSQL via Prisma 7 (`pg` driver adapter) — backend only |
 | UI | shadcn/ui (base-mira), Tailwind 4, Remix Icon |

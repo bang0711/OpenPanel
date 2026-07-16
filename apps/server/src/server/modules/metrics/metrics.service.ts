@@ -1,3 +1,4 @@
+import { prisma } from "@/db/prisma";
 import { runCommand, type SshServer } from "@/lib/ssh/client";
 
 export type DiskUsage = {
@@ -66,6 +67,14 @@ export class MetricsService {
       disks: this.parseDisks(df),
       systemStatus: status || "unknown",
     };
+  }
+
+  history(serverId: string, hours: number) {
+    return prisma.metricSample.findMany({
+      where: { serverId, createdAt: { gte: new Date(Date.now() - hours * 3600_000) } },
+      orderBy: { createdAt: "asc" },
+      select: { cpuLoad: true, memUsedPct: true, diskUsedPct: true, createdAt: true },
+    });
   }
 
   private parseMemory(free: string) {

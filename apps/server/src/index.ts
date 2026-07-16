@@ -5,6 +5,8 @@ import { Elysia } from "elysia";
 
 import { auth } from "@/lib/auth";
 import { app } from "@/server/app";
+import { registerJobs } from "@/server/jobs";
+import { startScheduler } from "@/server/scheduler";
 
 // Standalone API server (Bun). Hosts the Elysia app (all /api/* module routes)
 // plus Better Auth at /api/auth/*, with CORS for the separate web origin.
@@ -17,6 +19,10 @@ new Elysia()
   .all("/api/auth/*", ({ request }) => auth.handler(request))
   .use(app)
   .listen(port);
+
+// Background jobs (metric sampler, alert poller, backup runner).
+registerJobs();
+startScheduler();
 
 // eslint-disable-next-line no-console
 console.log(`[api] listening on :${port} (cors origin: ${WEB_ORIGIN})`);

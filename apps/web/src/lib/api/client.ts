@@ -1,12 +1,33 @@
+import { AccessResource } from "./resources/access.resource";
+import { AlertsResource } from "./resources/alerts.resource";
+import { AuditResource } from "./resources/audit.resource";
+import { BackupsResource } from "./resources/backups.resource";
+import { BulkResource } from "./resources/bulk.resource";
 import { CatalogResource } from "./resources/catalog.resource";
+import { ChannelsResource } from "./resources/channels.resource";
 import { CronResource } from "./resources/cron.resource";
+import { DbResource } from "./resources/db.resource";
+import { DbBackupResource } from "./resources/db-backup.resource";
+import { DnsResource } from "./resources/dns.resource";
+import { DockerResource } from "./resources/docker.resource";
+import { Fail2banResource } from "./resources/fail2ban.resource";
 import { FilesResource } from "./resources/files.resource";
 import { FirewallResource } from "./resources/firewall.resource";
+import { LogsResource } from "./resources/logs.resource";
 import { MetricsResource } from "./resources/metrics.resource";
 import { PackagesResource } from "./resources/packages.resource";
+import { PortsResource } from "./resources/ports.resource";
+import { PowerResource } from "./resources/power.resource";
+import { ProxyResource } from "./resources/proxy.resource";
+import { QueryResource } from "./resources/query.resource";
 import { ServerResource } from "./resources/server.resource";
 import { ServicesResource } from "./resources/services.resource";
+import { SshKeysResource } from "./resources/ssh-keys.resource";
+import { SslResource } from "./resources/ssl.resource";
 import { TerminalResource } from "./resources/terminal.resource";
+import { TokensResource } from "./resources/tokens.resource";
+import { UsersResource } from "./resources/users.resource";
+import { VhostResource } from "./resources/vhost.resource";
 
 export class ApiClient {
   server = new ServerResource();
@@ -18,6 +39,27 @@ export class ApiClient {
   catalog = new CatalogResource();
   cron = new CronResource();
   firewall = new FirewallResource();
+  ports = new PortsResource();
+  fail2ban = new Fail2banResource();
+  sshKeys = new SshKeysResource();
+  logs = new LogsResource();
+  power = new PowerResource();
+  users = new UsersResource();
+  ssl = new SslResource();
+  docker = new DockerResource();
+  vhost = new VhostResource();
+  proxy = new ProxyResource();
+  dns = new DnsResource();
+  db = new DbResource();
+  query = new QueryResource();
+  dbBackup = new DbBackupResource();
+  alerts = new AlertsResource();
+  backups = new BackupsResource();
+  access = new AccessResource();
+  bulk = new BulkResource();
+  tokens = new TokensResource();
+  channels = new ChannelsResource();
+  audit = new AuditResource();
 }
 
 export const api = new ApiClient();

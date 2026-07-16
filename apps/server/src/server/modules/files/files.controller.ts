@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 
-import { loadOwnedServer } from "@/server/access";
+import { authorize, loadOwnedServer } from "@/server/access";
+import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
 import {
@@ -51,8 +52,10 @@ export const filesController = new Elysia({ prefix: "/servers/:id/files" })
   .put(
     "/content",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "files.write", server.id);
       try {
         return await filesService.writeText(server, body.path, body.content);
       } catch (err) {
@@ -65,8 +68,10 @@ export const filesController = new Elysia({ prefix: "/servers/:id/files" })
   .post(
     "/mkdir",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "files.mkdir", server.id);
       try {
         return await filesService.makeDir(server, body.path);
       } catch (err) {
@@ -79,8 +84,10 @@ export const filesController = new Elysia({ prefix: "/servers/:id/files" })
   .post(
     "/chmod",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "files.chmod", server.id);
       try {
         return await filesService.chmod(server, body.path, body.mode);
       } catch (err) {
@@ -93,8 +100,10 @@ export const filesController = new Elysia({ prefix: "/servers/:id/files" })
   .post(
     "/rename",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "files.rename", server.id);
       try {
         return await filesService.rename(server, body.from, body.to);
       } catch (err) {
@@ -107,8 +116,10 @@ export const filesController = new Elysia({ prefix: "/servers/:id/files" })
   .post(
     "/upload",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "files.upload", server.id);
       try {
         const data = Buffer.from(await body.file.arrayBuffer());
         return await filesService.upload(
@@ -127,8 +138,10 @@ export const filesController = new Elysia({ prefix: "/servers/:id/files" })
   .delete(
     "/",
     async ({ params, query, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "admin");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "files.delete", server.id);
       try {
         return await filesService.remove(server, query.path);
       } catch (err) {

@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RiDashboardLine } from "@remixicon/react";
+import {
+  RiDashboardLine,
+  RiFileList3Line,
+  RiKey2Line,
+  RiNotification3Line,
+  RiStackLine,
+} from "@remixicon/react";
 
 import {
   Sidebar,
@@ -82,6 +88,37 @@ export function AppSidebar({
         </SidebarGroup>
 
         <SidebarServerList servers={servers} />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>{t("nav.tools")}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {[
+                { href: "/bulk", key: "nav.bulk", icon: RiStackLine },
+                { href: "/settings/tokens", key: "nav.tokens", icon: RiKey2Line },
+                {
+                  href: "/settings/notifications",
+                  key: "nav.notifications",
+                  icon: RiNotification3Line,
+                },
+                { href: "/audit", key: "nav.audit", icon: RiFileList3Line },
+              ].map(({ href, key, icon: Icon }) => (
+                <SidebarMenuItem key={href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(href)}
+                    tooltip={t(key)}
+                  >
+                    <Link href={href}>
+                      <Icon />
+                      <span>{t(key)}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>

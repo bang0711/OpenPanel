@@ -7,6 +7,13 @@ export type DiskUsage = {
   mount: string;
 };
 
+export type MetricHistoryPoint = {
+  cpuLoad: number;
+  memUsedPct: number;
+  diskUsedPct: number;
+  createdAt: string;
+};
+
 export type ServerMetrics = {
   hostname: string;
   kernel: string;

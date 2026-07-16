@@ -1,0 +1,36 @@
+import type { LocaleDict } from "../types";
+
+export const sshKeys: LocaleDict = {
+  en: {
+    "sshKeys.add": "Add key",
+    "sshKeys.dialogTitle": "Add SSH key",
+    "sshKeys.publicKey": "Public key",
+    "sshKeys.placeholder": "ssh-ed25519 AAAA... user@host",
+    "sshKeys.colType": "Type",
+    "sshKeys.colComment": "Comment",
+    "sshKeys.colKey": "Key",
+    "sshKeys.empty": "No authorized keys.",
+    "sshKeys.added": "Key added",
+    "sshKeys.addFailed": "Failed to add key",
+    "sshKeys.confirmDelete": "Remove this key?",
+    "sshKeys.removed": "Key removed",
+    "sshKeys.removeFailed": "Failed to remove key",
+    "sshKeys.loadFailed": "Failed to load",
+  },
+  vi: {
+    "sshKeys.add": "Thêm khóa",
+    "sshKeys.dialogTitle": "Thêm khóa SSH",
+    "sshKeys.publicKey": "Khóa công khai",
+    "sshKeys.placeholder": "ssh-ed25519 AAAA... user@host",
+    "sshKeys.colType": "Loại",
+    "sshKeys.colComment": "Ghi chú",
+    "sshKeys.colKey": "Khóa",
+    "sshKeys.empty": "Chưa có khóa được ủy quyền.",
+    "sshKeys.added": "Đã thêm khóa",
+    "sshKeys.addFailed": "Thêm khóa thất bại",
+    "sshKeys.confirmDelete": "Xóa khóa này?",
+    "sshKeys.removed": "Đã xóa khóa",
+    "sshKeys.removeFailed": "Xóa khóa thất bại",
+    "sshKeys.loadFailed": "Tải thất bại",
+  },
+};

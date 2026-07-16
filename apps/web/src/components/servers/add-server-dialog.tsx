@@ -49,6 +49,10 @@ export function AddServerDialog() {
         secret:
           authType === "password" ? String(form.get("password")) : keyText,
         passphrase: String(form.get("passphrase") || "") || undefined,
+        tags: String(form.get("tags") || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
       });
       toast.success(t("servers.added"));
       setOpen(false);
@@ -105,6 +109,11 @@ export function AddServerDialog() {
           <div className="space-y-1.5">
             <Label htmlFor="username">{t("servers.username")}</Label>
             <Input id="username" name="username" required placeholder="root" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="tags">{t("servers.tags")}</Label>
+            <Input id="tags" name="tags" placeholder={t("servers.tagsPlaceholder")} />
           </div>
 
           <div className="space-y-1.5">

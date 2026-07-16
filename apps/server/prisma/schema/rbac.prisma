@@ -1,0 +1,15 @@
+// Per-server access grants (RBAC). Owner + global admin bypass these.
+// level: "read" < "write" < "admin" (higher implies lower).
+
+model ServerPermission {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  level     String   @default("read")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, serverId])
+  @@map("server_permission")
+}

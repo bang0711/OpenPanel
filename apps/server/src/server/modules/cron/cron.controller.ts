@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 
-import { loadOwnedServer } from "@/server/access";
+import { authorize, loadOwnedServer } from "@/server/access";
+import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
 import { addJobBody } from "./cron.schema";
@@ -30,8 +31,10 @@ export const cronController = new Elysia({ prefix: "/servers/:id/cron" })
   .post(
     "/",
     async ({ params, body, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "cron.add", server.id);
       try {
         return await cronService.add(server, body.schedule, body.command);
       } catch (err) {
@@ -47,8 +50,10 @@ export const cronController = new Elysia({ prefix: "/servers/:id/cron" })
       const idx = Number(params.index);
       if (!Number.isInteger(idx) || idx < 0)
         return status(400, { error: "Invalid index" });
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "admin");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "cron.remove", server.id);
       try {
         return await cronService.remove(server, idx);
       } catch (err) {

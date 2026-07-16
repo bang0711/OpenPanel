@@ -25,51 +25,61 @@ and a tab in `components/servers/server-nav.tsx`).
 - [x] Cron editor — list/add/remove crontab jobs (write via `crontab -` stdin, no injection)
 - [x] Firewall (ufw) — status, enable/disable, allow/deny port, delete rule
 
-## Planned
+### Foundations (RBAC / scheduler / observability)
+- [x] Panel RBAC — per-server capability matrix (`authorize(user, server, action)`), `readonly` role,
+      grants managed per server (Access tab)
+- [x] API tokens — Bearer auth alongside session cookies (hashed at rest, shown once)
+- [x] Audit log — privileged actions recorded via `writeAudit`, admin-only viewer
+- [x] In-process scheduler (`scheduler.ts`) — metric sampler, alert poller, backup runner
+- [x] Historical metric charts — recharts (CPU/mem/disk) over 1h/24h/7d, backed by `MetricSample`
 
 ### Networking / security
-- [ ] Log viewer — journalctl + arbitrary file tail, curated sources, follow mode
-- [ ] SSL / Let's Encrypt — certbot issue / list / renew, auto-renew status
-- [ ] SSH key manager — authorized_keys add/remove
-- [ ] fail2ban — status, unban
-- [ ] Open ports view (`ss`/`netstat`)
+- [x] Log viewer — journalctl + curated file tails (static)
+- [x] SSL / Let's Encrypt — certbot list / issue (`--nginx`) / renew
+- [x] SSH key manager — authorized_keys add/remove (stdin write, no injection)
+- [x] fail2ban — status, unban
+- [x] Open ports view (`ss`/`netstat`)
 
 ### Web / domains
-- [ ] Virtual host manager — nginx/apache sites, enable/disable, config edit
-- [ ] DNS zone editor — A / CNAME / MX / TXT
-- [ ] Reverse-proxy / port-forward UI
+- [x] Virtual host manager — nginx sites list/enable/disable, config edit over SFTP + `nginx -t`
+- [x] DNS zone editor — edit local BIND zone files (SFTP) + `named-checkzone` + reload
+- [x] Reverse-proxy UI — templated nginx `proxy_pass` sites
 
 ### Databases
-- [ ] DB manager — MySQL/Postgres create db/user, grants, list
-- [ ] Query console (adminer-style)
-- [ ] DB backup / restore dumps
+- [x] DB manager — MySQL/Postgres create db/user, grants, list
+- [x] Query console — run SQL (stdin) and render rows
+- [x] DB backup — manual `mysqldump`/`pg_dump` + list dumps
 
 ### Users / access
-- [ ] System user manager — create/delete, sudo, shell
-- [ ] Panel RBAC — per-server permissions, read-only role
-- [ ] Audit log — who did what (DB table + action middleware)
-- [ ] API tokens for automation
+- [x] System user manager — create/delete, sudo toggle, shell
+- [x] Bulk actions across multiple servers (allowlisted action fan-out)
 
 ### Ops
-- [ ] Docker manager — containers/images, start/stop/rm, logs, compose
-- [ ] Power controls — reboot / shutdown (confirm)
-- [ ] Backup scheduler — files + db → local/S3
-- [ ] Cron `@reboot` / one-off `at` jobs
-- [ ] Bulk actions across multiple servers
-- [ ] Historical metric charts (needs metric storage/agent)
-- [ ] Alerts — disk full / service down → email/webhook
+- [x] Docker manager — containers/images, start/stop/restart/rm, logs
+- [x] Power controls — reboot / shutdown (confirm, admin-only)
+- [x] Backup scheduler — files (tar) + db (dump) jobs on an interval, run-now
+- [x] Alerts — metric/service rules evaluated by the poller → webhook notification
+- [x] Notification channels — webhook delivery (CRUD)
 
 ### Quality-of-life
-- [x] i18n — `useT()` + per-feature dictionaries (en, vi) covering all components,
-      language switcher with SVG flags
-- [ ] Server groups / tags, global search
-- [ ] Mobile-responsive polish
-- [ ] Email/webhook notifications
+- [x] i18n — `useT()` + per-feature dictionaries (en, vi), language switcher with SVG flags
+- [x] Server tags + global search (sidebar)
+
+## Deferred / partial
+
+- Cron `@reboot` / one-off `at` jobs — only crontab is implemented.
+- DB backup **restore** and an S3/off-box target — dumps are local-only.
+- Email notifications — only webhook channels ship; SMTP deferred (no mail dep).
+- Apache vhosts / DNS per-record (A/CNAME/MX) form / Docker Compose UI / log follow-mode —
+  the config-file + command layer is there; richer UIs deferred.
+- Mobile-responsive polish — tables/nav scroll on small screens; a dedicated audit is pending.
 
 ## Notes / known limitations
 
-- File upload buffers the whole file in memory before SFTP write — switch to a streaming
-  SFTP upload for large files.
+- Background jobs run in-process via `setInterval` (`scheduler.ts`); fine for a single instance,
+  move to a worker/queue for multi-instance deployments.
+- The metric sampler polls every registered host every 60s — watch SSH load with many servers.
+- File upload buffers the whole file in memory before SFTP write — switch to streaming for large files.
 - Live SSH features are unverified against a real host in CI; test with
   `docker run -d -p 2222:22 linuxserver/openssh-server`.
-- systemctl / ufw / package actions assume the SSH user is root or has passwordless sudo.
+- systemctl / ufw / package / db / power actions assume the SSH user is root or has passwordless sudo.

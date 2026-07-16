@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 
-import { loadOwnedServer } from "@/server/access";
+import { authorize } from "@/server/access";
+import { writeAudit } from "@/server/audit";
 import { authPlugin } from "@/server/plugins/auth";
 
 import { terminalService } from "./terminal.service";
@@ -10,8 +11,10 @@ export const terminalController = new Elysia({ prefix: "/servers/:id" })
   .post(
     "/terminal-ticket",
     async ({ params, user, status }) => {
-      const server = await loadOwnedServer(params.id, user);
-      if (!server) return status(404, { error: "Not found" });
+      const gate = await authorize(params.id, user, "write");
+      if (!gate.ok) return status(gate.code, { error: gate.error });
+      const server = gate.server;
+      writeAudit(user.id, "terminal.ticket", server.id);
       return terminalService.mintTicket(user.id, server.id);
     },
     { auth: true },

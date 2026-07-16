@@ -15,6 +15,7 @@ type ServerRow = {
   username: string;
   authType: string;
   hostFingerprint: string | null;
+  tags: string[];
   createdAt: Date;
 };
 
@@ -30,6 +31,7 @@ export class ServersService {
       username: s.username,
       authType: s.authType,
       hostFingerprint: s.hostFingerprint,
+      tags: s.tags,
       createdAt: s.createdAt,
     };
   }
@@ -53,7 +55,16 @@ export class ServersService {
         authType: body.authType,
         secretEnc: encryptSecret(body.secret),
         passphraseEnc: body.passphrase ? encryptSecret(body.passphrase) : null,
+        tags: body.tags ?? [],
       },
+    });
+    return this.sanitize(server);
+  }
+
+  async setTags(id: string, tags: string[]) {
+    const server = await prisma.server.update({
+      where: { id },
+      data: { tags },
     });
     return this.sanitize(server);
   }
