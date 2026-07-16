@@ -12,7 +12,8 @@ and a tab in `components/servers/server-nav.tsx`).
       same-origin proxy (`proxy.ts`) forwards `/api/*` to the backend, auth + Prisma backend-only
 - [x] Docker — single root `Dockerfile` (server/web targets) + `docker-compose.yml` (`open-panel` images)
 - [x] Auth — multi-user, roles (Better Auth admin plugin), `proxy.ts` gate + per-route check
-- [x] Server registry — SSH creds encrypted at rest, TOFU host-key pinning, password/key upload
+- [x] Server registry — SSH creds encrypted at rest, TOFU host-key pinning, password/key upload,
+      distro detection (`/etc/os-release` → allowlisted `osId`) with per-distro brand icons
 - [x] System dashboard — CPU / RAM / disk / load / uptime (5s poll)
 - [x] Services & processes — systemctl start/stop/restart/enable/disable, journal logs, ps/kill
 - [x] File manager (SFTP) — browse, edit, upload, download, chmod, rename, mkdir, delete
@@ -78,8 +79,17 @@ and a tab in `components/servers/server-nav.tsx`).
 
 - Background jobs run in-process via `setInterval` (`scheduler.ts`); fine for a single instance,
   move to a worker/queue for multi-instance deployments.
-- The metric sampler polls every registered host every 60s — watch SSH load with many servers.
-- File upload buffers the whole file in memory before SFTP write — switch to streaming for large files.
+- The metric sampler polls every registered host every 60s, sequentially — watch SSH load with many
+  servers. At ~50 hosts a tick can exceed the 60s interval, and the scheduler's overlap guard then
+  *skips* the next tick, so sampling silently degrades. Add concurrency + a skip log if that bites.
+- Command output is capped at 5 MB per exec (`MAX_OUTPUT_BYTES`, `lib/ssh/client.ts`); past that the
+  stream is destroyed and the result is flagged `truncated`. The query console surfaces this. Anything
+  needing more must stream rather than buffer.
+- File upload buffers the whole file in memory before SFTP write and has no `maxSize`; download
+  buffers up to 100 MB and copies it once more (~200 MB peak). Switch to streaming for large files.
+- `alert-poller` runs one query + one SSH exec per rule per tick (N+1); batch per server if rule
+  counts grow.
+- `AuditLog` grows unbounded — no retention pruning yet (reads are capped at 500).
 - Live SSH features are unverified against a real host in CI; test with
   `docker run -d -p 2222:22 linuxserver/openssh-server`.
 - systemctl / ufw / package / db / power actions assume the SSH user is root or has passwordless sudo.
