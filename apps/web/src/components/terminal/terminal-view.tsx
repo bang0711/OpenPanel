@@ -10,7 +10,14 @@ import { api, ApiError } from "@/lib/api";
 
 import { useT } from "@/components/common/i18n-provider";
 
-export function TerminalView({ serverId }: { serverId: string }) {
+export function TerminalView({
+  serverId,
+  wsUrl,
+}: {
+  serverId: string;
+  /** Resolved server-side (TERMINAL_WS_URL) so it isn't baked into the bundle. */
+  wsUrl: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useT();
   // Ref so a locale switch doesn't re-run the effect and drop the session.
@@ -56,9 +63,7 @@ export function TerminalView({ serverId }: { serverId: string }) {
       }
       if (disposed) return;
 
-      const base =
-        process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3001/api/terminal";
-      ws = new WebSocket(`${base}?ticket=${encodeURIComponent(ticket)}`);
+      ws = new WebSocket(`${wsUrl}?ticket=${encodeURIComponent(ticket)}`);
       ws.binaryType = "arraybuffer";
 
       const sendResize = () => {
@@ -99,7 +104,7 @@ export function TerminalView({ serverId }: { serverId: string }) {
       ws?.close();
       term?.dispose();
     };
-  }, [serverId]);
+  }, [serverId, wsUrl]);
 
   return (
     <div

@@ -1,9 +1,18 @@
-# Single Dockerfile, two build targets: `server` and `web`.
-# docker-compose selects the target per service. Build context is the repo root.
+# OpenPanel — one image, four roles (server | web | migrate | seed) plus an
+# `install` command that generates docker-compose.yml + .env.
+#
+#   docker build -t open-panel:latest .
+#   docker run --rm -v "$PWD:/output" open-panel:latest install
+#   docker compose up -d
+#
+# No ENV/ARG for app config on purpose: everything is supplied at RUN time by
+# docker-compose. Baking a NEXT_PUBLIC_* var would inline it into the client
+# bundle at build time and freeze it into the published image, so the terminal
+# ws URL is read server-side (TERMINAL_WS_URL) and passed down as a prop.
 
-# ---- shared base: install workspace deps + copy source ----
-FROM oven/bun:1 AS base
-WORKDIR /app
+# ---- build stage: full deps + toolchain. Never shipped. ----
+FROM oven/bun:1 AS build
+WORKDIR /src
 COPY package.json bun.lock ./
 COPY apps/web/package.json apps/web/
 COPY apps/server/package.json apps/server/
@@ -11,17 +20,64 @@ COPY packages/shared/package.json packages/shared/
 RUN bun install --frozen-lockfile
 COPY . .
 
-# ---- backend: Elysia API + terminal WebSocket (one port) ----
-FROM base AS server
+# Generate the Prisma client before compiling: the driver-adapter setup
+# (prisma-client generator + @prisma/adapter-pg) emits pure JS/WASM with no
+# native query engine, so it embeds into the binary and needs no node_modules
+# at runtime.
 RUN cd apps/server && bunx prisma generate
-EXPOSE 3001
-CMD ["sh", "-c", "cd apps/server && bunx prisma migrate deploy && bun src/index.ts"]
 
-# ---- frontend: Next.js. Only the terminal ws URL is baked (NEXT_PUBLIC); the
-# API origin is resolved at runtime by proxy.ts (API_BASE_URL). ----
-FROM base AS web
-ARG NEXT_PUBLIC_WS_URL="ws://localhost:3001/api/terminal"
-ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+# Compile the API to one binary. Bun reports 2-3x lower memory than running
+# from source, and the runtime needs no node_modules or source tree.
+#   --target=...-musl : match the Alpine runtime below (glibc build would not run)
+#   --external cpu-features : optional native ssh2 dep that cannot be bundled;
+#     ssh2 falls back to its pure-JS implementation without it.
+RUN cd apps/server && bun build \
+  --compile \
+  --minify-whitespace \
+  --minify-syntax \
+  --target=bun-linux-x64-musl \
+  --external cpu-features \
+  --outfile /src/op-server \
+  src/cli.ts
+
+# Next.js standalone: traces only the modules the server actually needs.
 RUN cd apps/web && bun run build
-EXPOSE 3000
-CMD ["sh", "-c", "cd apps/web && bun run start"]
+
+# ---- runtime: one image, every role ----
+FROM oven/bun:1-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+# Next's standalone server binds 127.0.0.1 by default, unreachable from outside.
+ENV HOSTNAME=0.0.0.0
+
+# Prisma CLI for the `migrate` role. Installed HERE, not copied from the build
+# stage: the CLI's schema-engine is platform-specific, and the build stage is
+# glibc while this is musl.
+COPY package.json bun.lock ./
+COPY apps/web/package.json apps/web/
+COPY apps/server/package.json apps/server/
+COPY packages/shared/package.json packages/shared/
+RUN bun install --frozen-lockfile --production --filter=@openpanel/server \
+  && rm -rf /root/.bun/install/cache ~/.cache
+
+# migrate role: schema + migration history + prisma config.
+RUN mkdir -p /app/server
+COPY apps/server/prisma /app/server/prisma
+COPY apps/server/prisma.config.ts /app/server/
+
+# server + seed roles: the compiled binary is the whole payload.
+COPY --from=build /src/op-server /app/op-server
+
+# web role: standalone output + assets it does not trace (static/public).
+COPY --from=build /src/apps/web/.next/standalone /app/web/
+COPY --from=build /src/apps/web/.next/static /app/web/apps/web/.next/static
+COPY --from=build /src/apps/web/public /app/web/apps/web/public
+
+COPY docker/entrypoint.sh /app/entrypoint.sh
+COPY docker/install.sh /app/install.sh
+COPY docker/docker-compose.yml /app/install/docker-compose.yml
+RUN chmod +x /app/entrypoint.sh /app/install.sh /app/op-server
+
+EXPOSE 3000 3001
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["server"]

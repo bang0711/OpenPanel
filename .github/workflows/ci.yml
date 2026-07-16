@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: typecheck / lint / test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # The Prisma client is generated code the typecheck depends on, and it is
+      # gitignored — regenerate before gating.
+      - run: bun run db:generate
+
+      - run: bun run test
+
+      - name: Build web
+        run: bun run build
+
+  image:
+    name: docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # Build only — publishing happens in release.yml on a tag. This proves the
+      # image still builds on every PR, since `bun run test` cannot catch a
+      # broken Dockerfile.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: open-panel:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
