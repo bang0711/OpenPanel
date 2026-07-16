@@ -10,6 +10,16 @@ export const services: LocaleDict = {
     "services.actionOk": "ok",
     "services.actionFailed": "failed",
 
+    "services.state.all": "All states",
+    "services.state.active": "Active",
+    "services.state.inactive": "Inactive",
+    "services.state.failed": "Failed",
+    "services.count": "{shown} of {total} units",
+    "services.showing": "Showing {from}–{to} of {total}",
+    "services.pageOf": "{page} / {pageCount}",
+    "services.prevPage": "Previous page",
+    "services.nextPage": "Next page",
+
     "services.col.unit": "Unit",
     "services.col.state": "State",
     "services.col.description": "Description",
@@ -43,6 +53,16 @@ export const services: LocaleDict = {
     "services.loadFailed": "Tải thất bại",
     "services.actionOk": "thành công",
     "services.actionFailed": "thất bại",
+
+    "services.state.all": "Mọi trạng thái",
+    "services.state.active": "Đang chạy",
+    "services.state.inactive": "Đã dừng",
+    "services.state.failed": "Lỗi",
+    "services.count": "{shown} trên {total} dịch vụ",
+    "services.showing": "Hiển thị {from}–{to} trên {total}",
+    "services.pageOf": "{page} / {pageCount}",
+    "services.prevPage": "Trang trước",
+    "services.nextPage": "Trang sau",
 
     "services.col.unit": "Đơn vị",
     "services.col.state": "Trạng thái",

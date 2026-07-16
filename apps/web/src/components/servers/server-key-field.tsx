@@ -42,13 +42,16 @@ export function ServerKeyField({
           </label>
         </Button>
       </div>
+      {/* 70ch = one OpenSSH key line in this mono font. This is the intrinsic
+          width the shrink-to-fit dialog sizes itself to, so keys never wrap;
+          height follows content via the Textarea's `field-sizing-content`. */}
       <Textarea
         id="server-key"
         required
         rows={5}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="font-mono text-xs"
+        className="w-[70ch] max-w-full font-mono text-xs"
         placeholder={t("servers.keyPlaceholder")}
       />
     </div>

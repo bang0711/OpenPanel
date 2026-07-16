@@ -27,6 +27,8 @@ import {
 
 import { useT } from "@/components/common/i18n-provider";
 import { IconButton } from "@/components/common/icon-button";
+import { PageHeader } from "@/components/common/page-header";
+import { PageShell } from "@/components/common/page-shell";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 export function TokensManager() {
@@ -91,20 +93,14 @@ export function TokensManager() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">{t("tokens.title")}</h1>
-          <p className="text-xs text-muted-foreground">{t("tokens.subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <RiAddLine />
-            {t("tokens.create")}
-          </Button>
-          <RefreshButton onClick={load} />
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader title={t("tokens.title")} description={t("tokens.subtitle")}>
+        <Button size="sm" onClick={() => setAddOpen(true)}>
+          <RiAddLine />
+          {t("tokens.create")}
+        </Button>
+        <RefreshButton onClick={load} />
+      </PageHeader>
 
       <div className="rounded-md border">
         <Table>
@@ -196,6 +192,6 @@ export function TokensManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

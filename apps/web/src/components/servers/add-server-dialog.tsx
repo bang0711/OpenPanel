@@ -75,7 +75,9 @@ export function AddServerDialog() {
           {t("common.addServer")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      {/* Width follows content: the key textarea is `w-[70ch]` in a mono font,
+          so in key mode the dialog shrinks-to-fit a full key line. */}
+      <DialogContent className="w-fit min-w-[min(calc(100%-2rem),28rem)] sm:max-w-[calc(100%-2rem)]">
         <form onSubmit={onSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>{t("servers.newServer")}</DialogTitle>

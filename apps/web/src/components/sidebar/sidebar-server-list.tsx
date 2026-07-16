@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RiServerLine } from "@remixicon/react";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -16,11 +15,13 @@ import {
 } from "@/components/ui/sidebar";
 
 import { useT } from "@/components/common/i18n-provider";
+import { OsIcon } from "@/components/common/os-icon";
 
 export type SidebarServer = {
   id: string;
   name: string;
   host: string;
+  osId?: string | null;
   tags?: string[];
 };
 
@@ -63,7 +64,7 @@ export function SidebarServerList({ servers }: { servers: SidebarServer[] }) {
                 tooltip={s.name}
               >
                 <Link href={`/servers/${s.id}`}>
-                  <RiServerLine />
+                  <OsIcon osId={s.osId} className="size-4" brandColor />
                   <span className="flex-1 truncate">{s.name}</span>
                   {(s.tags ?? []).length > 0 && (
                     <span className="truncate text-[0.625rem] text-muted-foreground group-data-[collapsible=icon]:hidden">

@@ -12,6 +12,8 @@ model Server {
   secretEnc       String // AES-256-GCM blob (password or private key)
   passphraseEnc   String? // optional, for encrypted keys
   hostFingerprint String? // pinned SHA256 host key (TOFU)
+  osId            String? // /etc/os-release ID, e.g. 'debian' (drives the distro icon)
+  osName          String? // /etc/os-release PRETTY_NAME, e.g. 'Debian GNU/Linux 12 (bookworm)'
   tags            String[] @default([])
   createdAt       DateTime @default(now())
 

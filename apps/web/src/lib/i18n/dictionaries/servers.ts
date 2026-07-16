@@ -20,6 +20,10 @@ export const servers: LocaleDict = {
     "servers.keyPlaceholder": "-----BEGIN OPENSSH PRIVATE KEY----- (paste or upload)",
     "servers.verified": "verified",
     "servers.untested": "untested",
+    "servers.verifiedHint":
+      "Host key pinned. Connections are rejected if this host ever presents a different key.",
+    "servers.untestedHint":
+      "No host key pinned yet — this host's identity is not verified on connect. Run “Test connection” to pin it.",
     "servers.title": "Servers",
     "servers.subtitle": "Manage your registered remote hosts.",
     "servers.emptyTitle": "No servers yet",
@@ -45,6 +49,10 @@ export const servers: LocaleDict = {
     "servers.keyPlaceholder": "-----BEGIN OPENSSH PRIVATE KEY----- (dán hoặc tải lên)",
     "servers.verified": "đã xác minh",
     "servers.untested": "chưa kiểm tra",
+    "servers.verifiedHint":
+      "Đã ghim khóa máy chủ. Kết nối sẽ bị từ chối nếu máy chủ này đưa ra khóa khác.",
+    "servers.untestedHint":
+      "Chưa ghim khóa máy chủ — danh tính máy chủ không được xác minh khi kết nối. Chạy “Kiểm tra kết nối” để ghim.",
     "servers.title": "Máy chủ",
     "servers.subtitle": "Quản lý các máy chủ từ xa đã đăng ký.",
     "servers.emptyTitle": "Chưa có máy chủ",

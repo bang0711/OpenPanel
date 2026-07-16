@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/table";
 
 import { useT } from "@/components/common/i18n-provider";
+import { PageHeader } from "@/components/common/page-header";
+import { PageShell } from "@/components/common/page-shell";
 import { RefreshButton } from "@/components/common/refresh-button";
 
 export function AuditViewer() {
@@ -44,25 +46,21 @@ export function AuditViewer() {
 
   if (forbidden) {
     return (
-      <div className="mx-auto max-w-4xl p-6">
+      <PageShell>
         <Alert variant="destructive">
           <RiShieldKeyholeLine />
           <AlertTitle>{t("audit.adminsOnly")}</AlertTitle>
           <AlertDescription>{t("audit.adminsOnlyDescription")}</AlertDescription>
         </Alert>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">{t("audit.title")}</h1>
-          <p className="text-xs text-muted-foreground">{t("audit.subtitle")}</p>
-        </div>
+    <PageShell>
+      <PageHeader title={t("audit.title")} description={t("audit.subtitle")}>
         <RefreshButton onClick={load} />
-      </div>
+      </PageHeader>
 
       <div className="rounded-md border">
         <Table>
@@ -104,6 +102,6 @@ export function AuditViewer() {
           </TableBody>
         </Table>
       </div>
-    </div>
+    </PageShell>
   );
 }

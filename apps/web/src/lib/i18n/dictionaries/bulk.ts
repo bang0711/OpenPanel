@@ -3,8 +3,14 @@ import type { LocaleDict } from "../types";
 export const bulk: LocaleDict = {
   en: {
     "bulk.title": "Bulk actions",
+    "bulk.subtitle": "Run an allowlisted action across several servers at once.",
     "bulk.selectServers": "Select servers",
     "bulk.selectAll": "Select all",
+    "bulk.selectedCount": "{n} of {total} selected",
+    "bulk.results": "Results",
+    "bulk.noResults": "No results yet",
+    "bulk.noResultsDescription":
+      "Pick servers and an action, then run it to see per-server output here.",
     "bulk.action": "Action",
     "bulk.unit": "Unit",
     "bulk.unitPlaceholder": "e.g. nginx",
@@ -23,8 +29,15 @@ export const bulk: LocaleDict = {
   },
   vi: {
     "bulk.title": "Thao tác hàng loạt",
+    "bulk.subtitle":
+      "Chạy một hành động trong danh sách cho phép trên nhiều máy chủ cùng lúc.",
     "bulk.selectServers": "Chọn máy chủ",
     "bulk.selectAll": "Chọn tất cả",
+    "bulk.selectedCount": "Đã chọn {n} trên {total}",
+    "bulk.results": "Kết quả",
+    "bulk.noResults": "Chưa có kết quả",
+    "bulk.noResultsDescription":
+      "Chọn máy chủ và hành động, sau đó chạy để xem kết quả từng máy chủ tại đây.",
     "bulk.action": "Hành động",
     "bulk.unit": "Dịch vụ",
     "bulk.unitPlaceholder": "ví dụ: nginx",

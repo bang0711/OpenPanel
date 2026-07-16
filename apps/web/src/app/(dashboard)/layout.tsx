@@ -28,7 +28,9 @@ export default async function DashboardLayout({
 
   return (
     <TooltipProvider>
-      <SidebarProvider>
+      {/* h-svh (not min-h-svh): the shell is pinned to the viewport so each
+          region scrolls itself instead of growing the page. */}
+      <SidebarProvider className="h-svh">
         <AppSidebar
           servers={servers}
           user={{
@@ -37,7 +39,7 @@ export default async function DashboardLayout({
             role: session.user.role,
           }}
         />
-        <SidebarInset>
+        <SidebarInset className="min-h-0 overflow-hidden">
           <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-1 h-full" />

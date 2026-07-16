@@ -2,10 +2,19 @@ import type { Locale } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
 // Inline SVG flags — render everywhere (Windows shows emoji flags as letters).
+//
+// The `size-full` class is load-bearing: Button/DropdownMenuItem force bare
+// descendant svgs to a fixed size via `[&_svg:not([class*='size-'])]:size-*`.
+// A `size-` class opts out of that override so the flag fills its span.
+// `slice` fills the span's ratio instead of letterboxing inside it.
 
 function GbFlag() {
   return (
-    <svg viewBox="0 0 60 30" className="h-full w-full">
+    <svg
+      viewBox="0 0 60 30"
+      preserveAspectRatio="xMidYMid slice"
+      className="size-full"
+    >
       <rect width="60" height="30" fill="#012169" />
       <path d="M0,0 60,30 M60,0 0,30" stroke="#fff" strokeWidth="6" />
       <path d="M0,0 60,30 M60,0 0,30" stroke="#C8102E" strokeWidth="2" />
@@ -17,7 +26,11 @@ function GbFlag() {
 
 function VnFlag() {
   return (
-    <svg viewBox="0 0 30 20" className="h-full w-full">
+    <svg
+      viewBox="0 0 30 20"
+      preserveAspectRatio="xMidYMid slice"
+      className="size-full"
+    >
       <rect width="30" height="20" fill="#DA251D" />
       <path
         fill="#FF0"

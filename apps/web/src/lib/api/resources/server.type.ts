@@ -7,6 +7,10 @@ export type Server = {
   username: string;
   authType: "password" | "key";
   hostFingerprint: string | null;
+  /** /etc/os-release ID, e.g. "debian". Null until the server is tested. */
+  osId: string | null;
+  /** /etc/os-release PRETTY_NAME, e.g. "Debian GNU/Linux 12 (bookworm)". */
+  osName: string | null;
   tags: string[];
   createdAt: string;
 };

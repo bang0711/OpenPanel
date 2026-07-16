@@ -1,9 +1,13 @@
 import { encryptSecret } from "@/lib/crypto";
-import { type SshServer,testConnection } from "@/lib/ssh/client";
+import { runCommand, type SshServer, testConnection } from "@/lib/ssh/client";
 import { prisma } from "@/db/prisma";
 import type { AuthUser } from "@/server/access";
 
-import { DEFAULT_SSH_PORT } from "./servers.constant";
+import {
+  DEFAULT_SSH_PORT,
+  OS_RELEASE_CMD,
+  parseOsRelease,
+} from "./servers.constant";
 import type { CreateServerBody } from "./servers.schema";
 
 type ServerRow = {
@@ -15,6 +19,8 @@ type ServerRow = {
   username: string;
   authType: string;
   hostFingerprint: string | null;
+  osId: string | null;
+  osName: string | null;
   tags: string[];
   createdAt: Date;
 };
@@ -31,9 +37,30 @@ export class ServersService {
       username: s.username,
       authType: s.authType,
       hostFingerprint: s.hostFingerprint,
+      osId: s.osId,
+      osName: s.osName,
       tags: s.tags,
       createdAt: s.createdAt,
     };
+  }
+
+  /**
+   * Best-effort distro detection for the server icon. Never throws: a host
+   * without /etc/os-release (or an unreachable one) just keeps a null osId.
+   */
+  async detectOs(server: SshServer & { id: string }) {
+    try {
+      const { stdout } = await runCommand(server, OS_RELEASE_CMD);
+      const { osId, osName } = parseOsRelease(stdout);
+      if (!osId && !osName) return null;
+      await prisma.server.update({
+        where: { id: server.id },
+        data: { osId, osName },
+      });
+      return { osId, osName };
+    } catch {
+      return null;
+    }
   }
 
   async list(user: AuthUser) {
@@ -84,6 +111,14 @@ export class ServersService {
       await prisma.server.update({
         where: { id: server.id },
         data: { hostFingerprint: fingerprint },
+      });
+    }
+    // Detect with the fresh pin applied, so this connection is verified
+    // against the key we just captured rather than trusting blindly again.
+    if (ok) {
+      await this.detectOs({
+        ...server,
+        hostFingerprint: fingerprint || server.hostFingerprint,
       });
     }
     return { ok, fingerprint, pinned: shouldPin };

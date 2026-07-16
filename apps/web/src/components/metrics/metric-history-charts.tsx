@@ -1,20 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { api, type MetricHistoryPoint } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useT } from "@/components/common/i18n-provider";
@@ -46,6 +44,9 @@ function HistoryChart({
   color: string;
   hours: number;
 }) {
+  // Drives both the line colour and the tooltip swatch/label via `--color-<key>`.
+  const config = { [dataKey]: { label: title, color } } satisfies ChartConfig;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -54,30 +55,45 @@ function HistoryChart({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+        <ChartContainer config={config} className="aspect-auto h-[180px] w-full">
+          <LineChart
+            data={data}
+            margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="createdAt"
               tickFormatter={(v) => fmtTime(v as string, hours)}
               minTickGap={32}
+              tickLine={false}
+              axisLine={false}
               tick={{ fontSize: 10 }}
             />
-            <YAxis tick={{ fontSize: 10 }} width={40} />
-            <Tooltip
-              labelFormatter={(v) => new Date(v as string).toLocaleString()}
-              contentStyle={{ fontSize: 12 }}
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 10 }}
+              width={40}
+            />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(_, p) =>
+                    new Date(p?.[0]?.payload?.createdAt as string).toLocaleString()
+                  }
+                />
+              }
             />
             <Line
               type="monotone"
               dataKey={dataKey}
-              stroke={color}
+              stroke={`var(--color-${dataKey})`}
               dot={false}
               strokeWidth={2}
               isAnimationActive={false}
             />
           </LineChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </Card>
   );

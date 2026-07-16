@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/empty";
 
 import { useT } from "@/components/common/i18n-provider";
+import { PageHeader } from "@/components/common/page-header";
+import { PageShell } from "@/components/common/page-shell";
 
 import { AddServerDialog } from "./add-server-dialog";
 import { ServerCard, type ServerCardData } from "./server-card";
@@ -20,16 +22,10 @@ export function ServersOverview({ servers }: { servers: ServerCardData[] }) {
   const t = useT();
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">{t("servers.title")}</h1>
-          <p className="text-xs text-muted-foreground">
-            {t("servers.subtitle")}
-          </p>
-        </div>
+    <PageShell>
+      <PageHeader title={t("servers.title")} description={t("servers.subtitle")}>
         <AddServerDialog />
-      </div>
+      </PageHeader>
 
       {servers.length === 0 ? (
         <Empty className="rounded-lg border border-dashed">
@@ -45,12 +41,12 @@ export function ServersOverview({ servers }: { servers: ServerCardData[] }) {
           </EmptyContent>
         </Empty>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {servers.map((s) => (
             <ServerCard key={s.id} server={s} />
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
