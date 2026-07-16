@@ -7,5 +7,10 @@ export const MAX_CONFIG_BYTES = 64 * 1024; // 64 KB nginx site config
 export const SITE_RE = /^[a-zA-Z0-9._-]+$/;
 
 export function isValidSite(name: string): boolean {
-  return typeof name === "string" && SITE_RE.test(name);
+  // `.` and `..` match SITE_RE but are directory references, not sites: they
+  // reach `ln -sf .../sites-available/..` and `rm -f .../sites-enabled/..`.
+  // No slash is allowed so they cannot escape /etc/nginx, but a name that
+  // resolves to a directory has no business reaching a command builder.
+  if (name === "." || name === "..") return false;
+  return typeof name === "string" && name.length <= 128 && SITE_RE.test(name);
 }

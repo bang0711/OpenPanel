@@ -48,5 +48,8 @@ export const INSTALL_SPECS: Record<string, InstallSpec> = {
 };
 
 export function findSpec(id: string): InstallSpec | undefined {
-  return INSTALL_SPECS[id];
+  // hasOwn, not a bare index: `INSTALL_SPECS["__proto__"]` (or "toString",
+  // "constructor") returns an inherited member, which is truthy and so passes
+  // the caller's `if (!spec)` allowlist check with a bogus `spec.install`.
+  return Object.hasOwn(INSTALL_SPECS, id) ? INSTALL_SPECS[id] : undefined;
 }
