@@ -20,8 +20,12 @@ export function encryptSecret(plain: string): string {
 }
 
 export function decryptSecret(blob: string): string {
-  const [ivB, tagB, ctB] = blob.split(".");
-  if (!ivB || !tagB || !ctB) throw new Error("Malformed encrypted blob");
+  const parts = blob.split(".");
+  // Structure check, not a truthiness check: an empty plaintext encrypts to an
+  // empty ciphertext segment, and `!ctB` would reject its own output.
+  if (parts.length !== 3) throw new Error("Malformed encrypted blob");
+  const [ivB, tagB, ctB] = parts;
+  if (!ivB || !tagB) throw new Error("Malformed encrypted blob");
   const decipher = createDecipheriv(
     "aes-256-gcm",
     key(),

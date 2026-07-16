@@ -1,8 +1,14 @@
+const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
+
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!bytes || bytes < 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(decimals)} ${units[i]}`;
+  // Clamp to the last unit: values are parsed from remote output, and a bad
+  // parse past PB would otherwise render a literal "undefined" to the user.
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    BYTE_UNITS.length - 1,
+  );
+  return `${(bytes / Math.pow(1024, i)).toFixed(decimals)} ${BYTE_UNITS[i]}`;
 }
 
 export function formatUptime(seconds: number): string {
