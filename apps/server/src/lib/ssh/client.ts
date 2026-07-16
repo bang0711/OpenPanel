@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { Client, type ConnectConfig } from "ssh2";
+
+import { collectStream } from "./collect";
+import { ConnectionPool } from "./pool";
+import { Client, type ClientChannel, type ConnectConfig } from "ssh2";
 
 import { decryptSecret } from "@/lib/crypto";
 
@@ -14,7 +17,21 @@ export type SshServer = {
   hostFingerprint?: string | null;
 };
 
-export type ExecResult = { stdout: string; stderr: string; code: number | null };
+export type ExecResult = {
+  stdout: string;
+  stderr: string;
+  code: number | null;
+  /** True when output hit MAX_OUTPUT_BYTES and the rest was discarded. */
+  truncated?: boolean;
+};
+
+/**
+ * Hard cap on the output we buffer from one command. Without it a single
+ * `SELECT * FROM big_table` (query console) or an unbounded `cat` pulls the
+ * whole remote payload into memory and can OOM a 512MB panel. Callers that need
+ * more than this should stream instead.
+ */
+export const MAX_OUTPUT_BYTES = 5 * 1024 * 1024;
 
 function fingerprintOf(key: Buffer): string {
   return createHash("sha256").update(key).digest("base64");
@@ -54,57 +71,31 @@ export function buildConfig(
 // Reuse one live SSH connection per host (ssh2 multiplexes exec/sftp channels),
 // so polling endpoints don't pay a TCP+SSH handshake on every request. Idle
 // connections are evicted after IDLE_MS. Terminal/testConnection stay one-off.
-type Pooled = { client: Client; refs: number; idle?: ReturnType<typeof setTimeout> };
-const pool = new Map<string, Pooled>();
+// Bookkeeping lives in ./pool.ts so it can be tested without a host.
 const IDLE_MS = 60_000;
+
+// The server for a key is fixed on first dial; later acquires of the same
+// user@host:port reuse that connection, so the config is captured here.
+const pending = new Map<string, SshServer>();
+
+const pool = new ConnectionPool<Client>((key, onGone) => {
+  const server = pending.get(key)!;
+  const client = new Client();
+  const ready = new Promise<Client>((resolve, reject) => {
+    client
+      .on("ready", () => resolve(client))
+      .on("error", (err) => {
+        onGone();
+        reject(err);
+      })
+      .on("close", onGone)
+      .connect({ ...buildConfig(server), keepaliveInterval: 15_000 });
+  });
+  return { client, ready };
+}, IDLE_MS);
 
 function poolKey(s: SshServer): string {
   return `${s.username}@${s.host}:${s.port}`;
-}
-
-function acquire(server: SshServer): Promise<Client> {
-  const key = poolKey(server);
-  const existing = pool.get(key);
-  if (existing) {
-    existing.refs++;
-    if (existing.idle) {
-      clearTimeout(existing.idle);
-      existing.idle = undefined;
-    }
-    return Promise.resolve(existing.client);
-  }
-  return new Promise((resolve, reject) => {
-    const client = new Client();
-    const entry: Pooled = { client, refs: 1 };
-    client
-      .on("ready", () => {
-        pool.set(key, entry);
-        resolve(client);
-      })
-      .on("error", (err) => {
-        pool.delete(key);
-        reject(err);
-      })
-      .on("close", () => pool.delete(key))
-      .connect({ ...buildConfig(server), keepaliveInterval: 15_000 });
-  });
-}
-
-function release(server: SshServer): void {
-  const key = poolKey(server);
-  const entry = pool.get(key);
-  if (!entry) return;
-  entry.refs = Math.max(0, entry.refs - 1);
-  if (entry.refs === 0) {
-    entry.idle = setTimeout(() => {
-      pool.delete(key);
-      try {
-        entry.client.end();
-      } catch {
-        /* ignore */
-      }
-    }, IDLE_MS);
-  }
 }
 
 /** Run `fn` over a pooled connection, borrowing/returning it around the call. */
@@ -112,12 +103,56 @@ export async function withSSH<T>(
   server: SshServer,
   fn: (conn: Client) => Promise<T>,
 ): Promise<T> {
-  const conn = await acquire(server);
+  const key = poolKey(server);
+  pending.set(key, server);
+  // Release the exact entry we borrowed: if the connection dropped mid-call and
+  // a replacement took the key, decrementing by key alone would hit the wrong one.
+  const entry = await pool.acquire(key);
   try {
-    return await fn(conn);
+    return await fn(entry.client);
   } finally {
-    release(server);
+    pool.release(key, entry);
   }
+}
+
+/**
+ * Wire a command stream up to bounded collectors and resolve when it closes.
+ * Shared by execCommand/execInput so the output cap cannot be forgotten in one
+ * of them — every module goes through these two functions.
+ */
+function collectExec(
+  stream: ClientChannel,
+  resolve: (r: ExecResult) => void,
+): void {
+  let stdout = "";
+  let stderr = "";
+  let truncated = false;
+  let code: number | null = null;
+  let closed = false;
+  let pendingStreams = 2;
+
+  const settle = () => {
+    if (closed && pendingStreams <= 0) resolve({ stdout, stderr, code, truncated });
+  };
+
+  collectStream(stream, MAX_OUTPUT_BYTES, (r) => {
+    stdout = r.text;
+    truncated ||= r.truncated;
+    pendingStreams--;
+    settle();
+  });
+  collectStream(stream.stderr, MAX_OUTPUT_BYTES, (r) => {
+    stderr = r.text;
+    truncated ||= r.truncated;
+    pendingStreams--;
+    settle();
+  });
+
+  stream.on("close", (c: number | null) => {
+    code = c;
+    closed = true;
+    settle();
+  });
 }
 
 /** Run a single command over an existing connection. Never interpolate user input into `cmd`. */
@@ -125,12 +160,7 @@ export function execCommand(conn: Client, cmd: string): Promise<ExecResult> {
   return new Promise((resolve, reject) => {
     conn.exec(cmd, (err, stream) => {
       if (err) return reject(err);
-      let stdout = "";
-      let stderr = "";
-      stream
-        .on("close", (code: number | null) => resolve({ stdout, stderr, code }))
-        .on("data", (d: Buffer) => (stdout += d.toString()))
-        .stderr.on("data", (d: Buffer) => (stderr += d.toString()));
+      collectExec(stream, resolve);
     });
   });
 }
@@ -150,12 +180,7 @@ export function execInput(
   return new Promise((resolve, reject) => {
     conn.exec(cmd, (err, stream) => {
       if (err) return reject(err);
-      let stdout = "";
-      let stderr = "";
-      stream
-        .on("close", (code: number | null) => resolve({ stdout, stderr, code }))
-        .on("data", (d: Buffer) => (stdout += d.toString()))
-        .stderr.on("data", (d: Buffer) => (stderr += d.toString()));
+      collectExec(stream, resolve);
       stream.end(input);
     });
   });

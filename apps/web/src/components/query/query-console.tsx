@@ -137,6 +137,11 @@ export function QueryConsole({ serverId }: { serverId: string }) {
             <p className="text-xs text-muted-foreground">
               {t("query.rows").replace("{count}", String(result.rows.length))}
             </p>
+            {result.truncated && (
+              <p className="text-xs text-destructive">
+                {t("query.truncated")}
+              </p>
+            )}
             <div className="overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>

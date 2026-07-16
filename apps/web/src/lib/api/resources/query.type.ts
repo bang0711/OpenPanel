@@ -5,4 +5,6 @@ export type QueryResult = {
   rows: string[][];
   raw: string;
   error?: boolean;
+  /** Output hit the transport's byte cap — rows below were discarded. */
+  truncated?: boolean;
 };

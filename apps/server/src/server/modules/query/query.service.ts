@@ -1,6 +1,11 @@
 import { runCommand, runCommandInput, type SshServer } from "@/lib/ssh/client";
 
-import { isValidDb, QUERY_ENGINES, type QueryEngine } from "./query.constant";
+import {
+  isValidDb,
+  parseQueryOutput,
+  QUERY_ENGINES,
+  type QueryEngine,
+} from "./query.constant";
 
 export type QueryEngines = { mysql: boolean; postgres: boolean };
 export type QueryResult = {
@@ -8,6 +13,8 @@ export type QueryResult = {
   rows: string[][];
   raw: string;
   error?: boolean;
+  /** Output hit the transport's byte cap — rows below were discarded. */
+  truncated?: boolean;
 };
 
 export class QueryService {
@@ -45,7 +52,11 @@ export class QueryService {
           ? `sudo -u postgres psql -A -F '\\t' -d ${db}`
           : "sudo -u postgres psql -A -F '\\t'";
 
-    const { stdout, stderr, code } = await runCommandInput(server, cmd, sql);
+    const { stdout, stderr, code, truncated } = await runCommandInput(
+      server,
+      cmd,
+      sql,
+    );
 
     if (code !== 0 || (!stdout.trim() && stderr.trim())) {
       return {
@@ -55,18 +66,7 @@ export class QueryService {
         error: true,
       };
     }
-    return this.parse(stdout);
-  }
-
-  // Tab-separated output: first line is the header, the rest are rows.
-  private parse(out: string): QueryResult {
-    const lines = out.replace(/\n+$/, "").split("\n");
-    if (lines.length === 0 || lines[0] === "") {
-      return { columns: [], rows: [], raw: out };
-    }
-    const columns = lines[0].split("\t");
-    const rows = lines.slice(1).map((l) => l.split("\t"));
-    return { columns, rows, raw: out };
+    return { ...parseQueryOutput(stdout, truncated), truncated };
   }
 }
 
