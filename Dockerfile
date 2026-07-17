@@ -26,19 +26,14 @@ COPY . .
 # at runtime.
 RUN cd apps/server && bunx prisma generate
 
-# Compile the API to one binary. Bun reports 2-3x lower memory than running
-# from source, and the runtime needs no node_modules or source tree.
-#   --target=...-musl : match the Alpine runtime below (glibc build would not run)
-#   --external cpu-features : optional native ssh2 dep that cannot be bundled;
-#     ssh2 falls back to its pure-JS implementation without it.
-RUN cd apps/server && bun build \
-  --compile \
-  --minify-whitespace \
-  --minify-syntax \
-  --target=bun-linux-x64-musl \
-  --external cpu-features \
-  --outfile /src/op-server \
-  src/cli.ts
+# Compile the API to one binary, reusing the app's own build script so the
+# flags live in one place (--external cpu-features etc.). Bun reports 2-3x
+# lower memory than running from source, and the runtime needs no node_modules
+# or source tree.
+#
+# The extra --target overrides the script's host default: it must match the
+# Alpine runtime below, since a glibc build would not run there.
+RUN cd apps/server && bun run build --target=bun-linux-x64-musl
 
 # Next.js standalone: traces only the modules the server actually needs.
 RUN cd apps/web && bun run build
@@ -66,7 +61,7 @@ COPY apps/server/prisma /app/server/prisma
 COPY apps/server/prisma.config.ts /app/server/
 
 # server + seed roles: the compiled binary is the whole payload.
-COPY --from=build /src/op-server /app/op-server
+COPY --from=build /src/apps/server/dist/op-server /app/op-server
 
 # web role: standalone output + assets it does not trace (static/public).
 COPY --from=build /src/apps/web/.next/standalone /app/web/

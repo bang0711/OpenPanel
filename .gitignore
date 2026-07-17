@@ -19,6 +19,8 @@ node_modules/
 
 # production
 /build
+# compiled server binary (bun build --compile) — ~100MB
+dist/
 
 # misc
 .DS_Store

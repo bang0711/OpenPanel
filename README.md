@@ -74,8 +74,8 @@ Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toStri
 | --- | --- |
 | `bun run dev` | web + API/ws (both) |
 | `bun run dev:web` / `dev:server` | one process only |
-| `bun run build` | production build of the web app |
-| `bun run start` | production web + API/ws |
+| `bun run build` | both apps: compiles the API to a single binary (`apps/server/dist/op-server`, ~100MB, no `node_modules` needed to run) then builds the web app |
+| `bun run start` | production web + API/ws — the API runs the **compiled binary**, so `build` must come first (Bun reports 2–3× lower memory than running from source) |
 | `bun run seed` | seed the admin user |
 | `bun run db:migrate` / `db:generate` | Prisma migrate / generate (in `apps/server`) |
 | `bun run test` | **the gate**: typecheck → lint → `bun test` (all workspaces). CI runs this; `release` refuses to publish without it |

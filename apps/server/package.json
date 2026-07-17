@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts",
+    "build": "bun build --compile --minify-whitespace --minify-syntax --external cpu-features --outfile dist/op-server src/cli.ts",
+    "start": "dist/op-server serve",
     "seed": "tsx scripts/seed-admin.ts",
     "lint": "eslint",
     "db:generate": "prisma generate",
