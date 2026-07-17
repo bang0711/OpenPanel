@@ -96,10 +96,14 @@ and a tab in `components/servers/server-nav.tsx`).
 - Live SSH features are unverified against a real host in CI; test with
   `docker run -d -p 2222:22 linuxserver/openssh-server`.
 - systemctl / ufw / package / db / power actions assume the SSH user is root or has passwordless sudo.
-- The CD `deploy` job is untested end-to-end — no tag has been pushed and no Docker image has been
-  built yet (`docker/deploy.sh`'s own logic is verified against a stubbed `docker`). It has no
-  `bun test` coverage either: the unit is a shell script plus workflow YAML, neither reachable from
-  the runner. First real tag is the proof; deploy a throwaway version before a real one.
+- The CD `deploy` job is untested end-to-end — no tag has been pushed to a real host
+  (`docker/deploy.sh`'s own logic is verified against a stubbed `docker`). It has no `bun test`
+  coverage either: the unit is a shell script plus workflow YAML, neither reachable from the runner.
+  First real tag is the proof; deploy a throwaway version before a real one.
+- The image itself is verified: it builds (665MB), and against a throwaway Postgres the `migrate`,
+  `seed`, and `server` roles all run correctly. Still unverified: a full `compose up` of the whole
+  stack, browser sign-in, the terminal websocket, and registering a real host (`detectOs` /
+  fingerprint pin) — those need the web + a live sshd.
 - CD deploys, it does not bootstrap: `DEPLOY_PATH` must already contain `docker-compose.yml` + `.env`
   from `open-panel install`, and the deploy is single-host (no rolling restart — brief downtime while
   compose recreates the containers).

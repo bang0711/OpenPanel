@@ -114,8 +114,12 @@ One image, four roles (compose runs the same image three times):
 | --- | --- |
 | `server` | API + terminal ws (:3001). A single `bun build --compile` binary — no `node_modules`, no source tree; Bun reports 2–3× lower memory than running from source |
 | `web` | Next.js `output: "standalone"` (:3000) — only the traced modules |
-| `migrate` | `prisma migrate deploy`, then exits. `server` waits on `service_completed_successfully`, so the API never races an unmigrated schema |
+| `migrate` | `prisma migrate deploy`, then exits. `server` waits on `service_completed_successfully`, so the API never races an unmigrated schema. The image installs **only** the prisma CLI for this role, not the server's runtime deps |
 | `seed` | Creates the first admin user, then exits |
+
+The image is **665MB** (measured): ~235MB prisma CLI + schema-engine for the
+`migrate` role, 98MB compiled API binary, 88MB Bun runtime, 64MB Next
+standalone, on a 9MB Alpine base.
 
 Building it locally (CI publishes — see below):
 
