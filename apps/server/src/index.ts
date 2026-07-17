@@ -24,5 +24,14 @@ new Elysia()
 registerJobs();
 startScheduler();
 
+// WEB_ORIGIN is the browser-reachable base; /api is proxied there to this
+// server, so the docs are reached through it, not this server's own port.
 // eslint-disable-next-line no-console
-console.log(`[api] listening on :${port} (cors origin: ${WEB_ORIGIN})`);
+console.log(
+  [
+    `[api] listening on :${port}`,
+    `[api]   base   ${WEB_ORIGIN}`,
+    `[api]   docs   ${WEB_ORIGIN}/api/docs`,
+    `[api]   cors   ${WEB_ORIGIN}`,
+  ].join("\n"),
+);
