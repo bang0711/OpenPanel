@@ -1,0 +1,16 @@
+# Line endings. This repo deploys to Linux containers, and two things break if a
+# file arrives with CRLF:
+#
+#  - Migration .sql: the migrate runner checksums the file (sha256, matching
+#    Prisma). CRLF vs LF is a different checksum, so a migration applied from a
+#    Windows checkout (autocrlf=true) and re-checked by a Linux image mismatch,
+#    and the drift guard rejects the deploy.
+#  - Shell scripts: a `\r` in the shebang or a command fails in the container.
+#
+# Force LF for both, in the working tree and the blob, on every platform.
+*.sql text eol=lf
+*.sh  text eol=lf
+
+# Everything else: normalize to LF in the repo, let git pick the working-tree
+# ending per platform.
+* text=auto
