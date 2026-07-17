@@ -114,12 +114,22 @@ One image, four roles (compose runs the same image three times):
 | --- | --- |
 | `server` | API + terminal ws (:3001). A single `bun build --compile` binary — no `node_modules`, no source tree; Bun reports 2–3× lower memory than running from source |
 | `web` | Next.js `output: "standalone"` (:3000) — only the traced modules |
-| `migrate` | `prisma migrate deploy`, then exits. `server` waits on `service_completed_successfully`, so the API never races an unmigrated schema. The image installs **only** the prisma CLI for this role, not the server's runtime deps |
+| `migrate` | applies pending migrations, then exits. `server` waits on `service_completed_successfully`, so the API never races an unmigrated schema. Uses `op-server migrate`, a SQL applier compiled into the binary — **no prisma CLI in the image** |
 | `seed` | Creates the first admin user, then exits |
 
-The image is **665MB** (measured): ~235MB prisma CLI + schema-engine for the
-`migrate` role, 98MB compiled API binary, 88MB Bun runtime, 64MB Next
-standalone, on a 9MB Alpine base.
+The image is **371MB** (measured): 98MB compiled API binary, 88MB Bun runtime,
+64MB Next standalone, ~100KB migration SQL, on a 9MB Alpine base. No
+`node_modules`.
+
+Migrations: `op-server migrate` reads the committed `prisma/migrations/*.sql`
+and applies the pending ones, tracking them in Prisma's own `_prisma_migrations`
+table with the same checksums — so an existing Prisma-migrated database is
+picked up seamlessly. It exists only to *apply*; you still author migrations on
+a dev machine with `prisma migrate dev` (prisma is a dev dependency, never
+shipped). Editing an already-applied migration, a prior crashed apply, or a
+missing `DATABASE_URL` each fail the role, which blocks the deploy rather than
+starting the API against a bad schema. Don't run `prisma migrate deploy` against
+a database the runner manages — the runner is the deploy path.
 
 Building it locally (CI publishes — see below):
 

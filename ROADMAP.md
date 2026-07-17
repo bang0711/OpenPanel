@@ -100,10 +100,11 @@ and a tab in `components/servers/server-nav.tsx`).
   (`docker/deploy.sh`'s own logic is verified against a stubbed `docker`). It has no `bun test`
   coverage either: the unit is a shell script plus workflow YAML, neither reachable from the runner.
   First real tag is the proof; deploy a throwaway version before a real one.
-- The image itself is verified: it builds (665MB), and against a throwaway Postgres the `migrate`,
-  `seed`, and `server` roles all run correctly. Still unverified: a full `compose up` of the whole
-  stack, browser sign-in, the terminal websocket, and registering a real host (`detectOs` /
-  fingerprint pin) — those need the web + a live sshd.
+- The image itself is verified: it builds (371MB), and against a throwaway Postgres the `migrate`
+  (binary-embedded SQL applier, Prisma-checksum-compatible), `seed`, and `server` roles all run
+  correctly. Still unverified: a full `compose up` of the whole stack, browser sign-in, the terminal
+  websocket, and registering a real host (`detectOs` / fingerprint pin) — those need the web + a
+  live sshd.
 - CD deploys, it does not bootstrap: `DEPLOY_PATH` must already contain `docker-compose.yml` + `.env`
   from `open-panel install`, and the deploy is single-host (no rolling restart — brief downtime while
   compose recreates the containers).
