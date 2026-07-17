@@ -79,9 +79,16 @@ Put each feature in `apps/server/src/server/modules/<feature>/`, split into:
   1. Does something in `components/common/` or `components/ui/` already do this?
      Use it — check before you write, re-implementing what already exists is the
      most common failure here.
-  2. Missing a shadcn primitive? Add it (`bunx --bun shadcn@latest add <name>`).
-     Never hand-roll a raw `<select>`, `<input type="checkbox">`, tooltip, or
-     dialog.
+  2. **Use shadcn/ui for every interactive primitive** — add it if missing
+     (`bunx --bun shadcn@latest add <name>`). NEVER hand-roll or use the native
+     HTML element for any of: `<select>` → `Select`, `<input type="checkbox">` →
+     `Checkbox`, an on/off toggle → `Switch`, `<input type="radio">` →
+     `RadioGroup`, `<textarea>` → `Textarea`, `<input>` → `Input`, a dialog →
+     `Dialog`, a tooltip → `ActionTooltip`. A styled native control (e.g. a
+     `<select>` with border classes) is still a violation — the point is
+     consistent behavior and a11y, not just appearance. Radix `Select` forbids an
+     empty-string item value: use a sentinel (`"none"`, `"default"`) and map it
+     back on submit.
   3. Is the same markup now in **3+ places**? Extract it to `components/common/`
      in that same change. Do not extract on the first or second use — duplication
      is cheaper than the wrong abstraction.
@@ -89,8 +96,11 @@ Put each feature in `apps/server/src/server/modules/<feature>/`, split into:
   `PageHeader` and are **full-width by design**. Never add `mx-auto max-w-*` to a
   page — let tables and grids use the viewport. Server-detail pages get padding
   from `servers/[id]/layout.tsx`.
-- Tooltips: use `ActionTooltip` / `IconButton` (shadcn) — never the native
-  `title` attribute.
+- **Tooltips: never use the native `title` attribute on any element.** A hover
+  hint always wraps the element in `ActionTooltip` (a shared component over the
+  shadcn tooltip), or uses `IconButton` (which has a `label` that renders one).
+  `title=` on a real DOM element is a violation; `title` as a *prop* of our own
+  components (`PageHeader title=`, `CommandOutputDialog title=`) is fine.
 - Memoize hot list rows (`memo`) and stabilize their handlers with
   `useCallback`.
 

@@ -8,12 +8,17 @@ import { api, ApiError, type LogSource } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useT } from "@/components/common/i18n-provider";
 
 const LINE_OPTIONS = [100, 500, 1000];
-const SELECT_CLS =
-  "h-7 rounded-md border border-input bg-input/20 px-2 text-xs/relaxed outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-input/30";
 
 // Map an allowlist key ("nginx-access") to its i18n suffix ("nginxAccess").
 function srcKey(key: string) {
@@ -72,34 +77,39 @@ export function LogsViewer({ serverId }: { serverId: string }) {
           <span className="text-xs text-muted-foreground">
             {t("logs.source")}
           </span>
-          <select
-            className={SELECT_CLS}
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-          >
-            {sources.map((s) => (
-              <option key={s.key} value={s.key}>
-                {t(srcKey(s.key))}
-              </option>
-            ))}
-          </select>
+          <Select value={source} onValueChange={setSource}>
+            <SelectTrigger size="sm" className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sources.map((s) => (
+                <SelectItem key={s.key} value={s.key}>
+                  {t(srcKey(s.key))}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">
             {t("logs.lines")}
           </span>
-          <select
-            className={SELECT_CLS}
-            value={lines}
-            onChange={(e) => setLines(Number(e.target.value))}
+          <Select
+            value={String(lines)}
+            onValueChange={(v) => setLines(Number(v))}
           >
-            {LINE_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger size="sm" className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LINE_OPTIONS.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         {source === "unit" && (

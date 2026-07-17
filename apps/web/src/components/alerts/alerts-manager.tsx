@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { type AlertsData,api, ApiError } from "@/lib/api";
 
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -110,10 +111,9 @@ export function AlertsManager({ serverId }: { serverId: string }) {
                 </TableCell>
                 <TableCell className="text-xs">{channelName(r.channelId)}</TableCell>
                 <TableCell>
-                  <input
-                    type="checkbox"
+                  <Switch
                     checked={r.enabled}
-                    onChange={(e) => toggle(r.id, e.currentTarget.checked)}
+                    onCheckedChange={(v) => toggle(r.id, v)}
                     aria-label={t("alerts.enabled")}
                   />
                 </TableCell>

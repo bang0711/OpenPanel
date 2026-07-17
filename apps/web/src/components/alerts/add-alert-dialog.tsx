@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useT } from "@/components/common/i18n-provider";
@@ -37,6 +44,9 @@ export function AddAlertDialog({
   const [open, setOpen] = useState(false);
   const [metric, setMetric] = useState<Metric>("cpu");
   const [op, setOp] = useState<">" | "<">(">");
+  // "none" is a sentinel: Radix Select forbids an empty item value, so the
+  // "no channel" choice can't be "". Mapped back to undefined on submit.
+  const [channelId, setChannelId] = useState("none");
   const [saving, setSaving] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -44,7 +54,6 @@ export function AddAlertDialog({
     const form = new FormData(e.currentTarget);
     const threshold = Number(form.get("threshold"));
     const target = String(form.get("target") ?? "").trim();
-    const channelId = String(form.get("channelId") ?? "");
     setSaving(true);
     try {
       await api.alerts.create(serverId, {
@@ -52,7 +61,7 @@ export function AddAlertDialog({
         op,
         threshold,
         target: target || undefined,
-        channelId: channelId || undefined,
+        channelId: channelId === "none" ? undefined : channelId,
       });
       toast.success(t("alerts.created"));
       setOpen(false);
@@ -131,19 +140,19 @@ export function AddAlertDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="channelId">{t("alerts.channel")}</Label>
-            <select
-              id="channelId"
-              name="channelId"
-              className="h-7 w-full rounded-md border border-input bg-input/20 px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-input/30"
-              defaultValue=""
-            >
-              <option value="">{t("alerts.noChannel")}</option>
-              {channels.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <Select value={channelId} onValueChange={setChannelId}>
+              <SelectTrigger id="channelId" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("alerts.noChannel")}</SelectItem>
+                {channels.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter>

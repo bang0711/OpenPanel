@@ -17,10 +17,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useT } from "@/components/common/i18n-provider";
 
 const SHELLS = ["/bin/bash", "/bin/sh", "/usr/sbin/nologin", "/bin/false"];
+// Sentinel for "no shell specified" — Radix Select forbids an empty item value.
+const DEFAULT_SHELL = "default";
 
 export function AddUserDialog({
   serverId,
@@ -31,18 +40,18 @@ export function AddUserDialog({
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const [shell, setShell] = useState(DEFAULT_SHELL);
   const [saving, setSaving] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const shell = String(form.get("shell"));
     setSaving(true);
     try {
       await api.users.create(
         serverId,
         String(form.get("username")),
-        shell || undefined,
+        shell === DEFAULT_SHELL ? undefined : shell,
       );
       toast.success(t("users.created"));
       setOpen(false);
@@ -82,19 +91,19 @@ export function AddUserDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="shell">{t("users.shell")}</Label>
-            <select
-              id="shell"
-              name="shell"
-              defaultValue=""
-              className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 font-mono text-sm shadow-sm"
-            >
-              <option value="">—</option>
-              {SHELLS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            <Select value={shell} onValueChange={setShell}>
+              <SelectTrigger id="shell" className="w-full font-mono">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DEFAULT_SHELL}>—</SelectItem>
+                {SHELLS.map((s) => (
+                  <SelectItem key={s} value={s} className="font-mono">
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={saving}>
