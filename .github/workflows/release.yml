@@ -24,6 +24,8 @@ jobs:
     # Gates first: nothing reaches Docker Hub unless the tests pass.
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,3 +59,46 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/open-panel:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    name: deploy
+    # Only ever deploys an image that is already published and gated.
+    needs: publish
+    runs-on: ubuntu-latest
+    # Scopes the deploy credentials to this environment, so a protection rule
+    # (required reviewer, branch filter) can gate it later without a rewrite.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      # No third-party SSH action: `ssh` is already on the runner, and an
+      # action here would be a supply-chain dependency holding a key with
+      # docker (root-equivalent) rights on the production box.
+      - name: Deploy over SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/open-panel:${{ needs.publish.outputs.version }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_PATH:?set the DEPLOY_PATH repository variable, e.g. /opt/openpanel}"
+
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Host key comes from a secret (`ssh-keyscan <host>`), never a scan at
+          # deploy time: a scan trusts whoever answers first, and this hop hands
+          # over a key to the panel's own host. StrictHostKeyChecking=yes turns a
+          # MITM into a failed deploy instead of a compromised one.
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/id_deploy \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o IdentitiesOnly=yes \
+              "$SSH_USER@$HOST" 'sh -s' -- "$IMAGE" "$DEPLOY_PATH" \
+              < docker/deploy.sh

@@ -35,7 +35,7 @@ describe("request", () => {
 
   it("returns the parsed body", async () => {
     stub({ body: [{ id: "1" }] });
-    expect(await request("GET", "/servers")).toEqual([{ id: "1" }]);
+    expect(await request<{ id: string }[]>("GET", "/servers")).toEqual([{ id: "1" }]);
   });
 
   it("JSON-encodes a body and sets the content type", async () => {

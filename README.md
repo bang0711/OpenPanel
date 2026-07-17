@@ -125,6 +125,41 @@ bun run update 1.0.0                          # bump version + image tags
 DOCKER_REPO=youruser/open-panel bun run release
 ```
 
+### Continuous deployment
+
+Pushing a `v*` tag runs the gates, publishes to Docker Hub, then deploys to your
+server over SSH (`deploy` job in `.github/workflows/release.yml`). It only ever
+deploys an image that already passed the gates and was published.
+
+The target directory must already be set up with `open-panel install` — CD
+deploys, it does not bootstrap. Configure once:
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `DEPLOY_HOST` | secret | server IP or hostname |
+| `DEPLOY_USER` | secret | SSH user (must be able to run `docker`) |
+| `DEPLOY_SSH_KEY` | secret | private key, full PEM including the header/footer lines |
+| `DEPLOY_KNOWN_HOSTS` | secret | output of `ssh-keyscan <host>` |
+| `DEPLOY_PATH` | **variable** | e.g. `/opt/openpanel` — the dir holding `docker-compose.yml` + `.env` |
+
+The host key comes from a secret rather than an `ssh-keyscan` at deploy time: a
+scan trusts whoever answers first, and this connection carries a key with
+root-equivalent rights on the panel's own host. OpenPanel pins fingerprints for
+the servers it manages; its own deploy holds the same bar. `DEPLOY_PATH` is a
+variable, not a secret — a path isn't sensitive, and masking it only makes failed
+runs harder to read.
+
+The remote half is `docker/deploy.sh`, piped over stdin and given its arguments
+as argv, so nothing is interpolated into a remote shell string. It pins `IMAGE=`
+in the host's `.env` (so a later manual `docker compose up` keeps the deployed
+version), then pulls and restarts. Migrations need no extra step: `up -d`
+recreates `migrate`, and `server`'s `service_completed_successfully` dependency
+means a failed migration fails the deploy instead of starting the API against an
+unmigrated schema.
+
+Rollback: re-tag an older version, or edit `IMAGE=` in the host's `.env` and run
+`docker compose up -d`.
+
 ## Tests
 
 **Every feature ships with tests** (backend and frontend) in the same change —

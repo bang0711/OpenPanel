@@ -10,7 +10,10 @@ and a tab in `components/servers/server-nav.tsx`).
 
 - [x] Monorepo split — `apps/web` (Next) + `apps/server` (Elysia on Bun) + `packages/shared`;
       same-origin proxy (`proxy.ts`) forwards `/api/*` to the backend, auth + Prisma backend-only
-- [x] Docker — single root `Dockerfile` (server/web targets) + `docker-compose.yml` (`open-panel` images)
+- [x] Docker — one image, four roles (`server`/`web`/`migrate`/`seed`); `open-panel install` writes
+      the compose file + generated secrets; no config baked into the image
+- [x] CI/CD — `bun run test` gate + image build on every PR; a `v*` tag gates → publishes to Docker
+      Hub → deploys over SSH (`docker/deploy.sh`, host key pinned from `DEPLOY_KNOWN_HOSTS`)
 - [x] Auth — multi-user, roles (Better Auth admin plugin), `proxy.ts` gate + per-route check
 - [x] Server registry — SSH creds encrypted at rest, TOFU host-key pinning, password/key upload,
       distro detection (`/etc/os-release` → allowlisted `osId`) with per-distro brand icons
@@ -93,3 +96,10 @@ and a tab in `components/servers/server-nav.tsx`).
 - Live SSH features are unverified against a real host in CI; test with
   `docker run -d -p 2222:22 linuxserver/openssh-server`.
 - systemctl / ufw / package / db / power actions assume the SSH user is root or has passwordless sudo.
+- The CD `deploy` job is untested end-to-end — no tag has been pushed and no Docker image has been
+  built yet (`docker/deploy.sh`'s own logic is verified against a stubbed `docker`). It has no
+  `bun test` coverage either: the unit is a shell script plus workflow YAML, neither reachable from
+  the runner. First real tag is the proof; deploy a throwaway version before a real one.
+- CD deploys, it does not bootstrap: `DEPLOY_PATH` must already contain `docker-compose.yml` + `.env`
+  from `open-panel install`, and the deploy is single-host (no rolling restart — brief downtime while
+  compose recreates the containers).
