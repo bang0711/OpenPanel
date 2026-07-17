@@ -4,13 +4,16 @@
 // so it is done here and compiled into the op-server binary. Authoring still
 // happens on a dev machine with `prisma migrate dev` — that is unchanged.
 //
-// Uses Bun's native SQL client (no pg/node dependency): the runtime is Bun, so
-// this adds nothing to the image.
+// Uses `pg` — the SAME driver the app runs through @prisma/adapter-pg, already
+// bundled in the binary. Sharing the driver means one DATABASE_URL (SSL params
+// and all) behaves identically for migrations and for the app; an earlier
+// Bun.SQL version diverged on sslmode (it rejected `no-verify`, which managed
+// databases like Cloud SQL need).
 import { readdirSync, readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
-import { SQL } from "bun";
+import { Client } from "pg";
 
 import {
   type LocalMigration,
@@ -52,24 +55,20 @@ export async function runMigrations(): Promise<void> {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not set");
 
-  const sql = new SQL(connectionString);
+  const client = new Client({ connectionString });
+  await client.connect();
   try {
-    await sql.unsafe(CREATE_TABLE);
+    await client.query(CREATE_TABLE);
 
     const local = loadLocal();
-    const rows = await sql`
-      SELECT migration_name, checksum, finished_at FROM "_prisma_migrations"`;
-    const applied = rows.map(
-      (r: {
-        migration_name: string;
-        checksum: string;
-        finished_at: unknown;
-      }) => ({
-        name: r.migration_name,
-        checksum: r.checksum,
-        finished: r.finished_at != null,
-      }),
+    const { rows } = await client.query(
+      `SELECT migration_name, checksum, finished_at FROM "_prisma_migrations"`,
     );
+    const applied = rows.map((r) => ({
+      name: r.migration_name as string,
+      checksum: r.checksum as string,
+      finished: r.finished_at != null,
+    }));
 
     const { pending, drift, failed } = planMigrations(local, applied);
 
@@ -98,20 +97,29 @@ export async function runMigrations(): Promise<void> {
       // Record the attempt BEFORE applying, in its own committed statement, so
       // a crash mid-apply leaves a finished_at=null row that blocks the next
       // deploy (caught as `failed` above) rather than silently re-running.
-      await sql`
-        INSERT INTO "_prisma_migrations" (id, checksum, migration_name, started_at)
-        VALUES (${id}, ${migrationChecksum(m.sql)}, ${m.name}, now())`;
+      await client.query(
+        `INSERT INTO "_prisma_migrations" (id, checksum, migration_name, started_at)
+         VALUES ($1, $2, $3, now())`,
+        [id, migrationChecksum(m.sql), m.name],
+      );
       // The whole migration in one transaction: a failure rolls back the schema
       // change, and the finished_at=null row above remains to flag it.
-      await sql.begin((tx: { unsafe: (q: string) => Promise<unknown> }) =>
-        tx.unsafe(m.sql),
+      await client.query("BEGIN");
+      try {
+        await client.query(m.sql);
+        await client.query("COMMIT");
+      } catch (e) {
+        await client.query("ROLLBACK");
+        throw e;
+      }
+      await client.query(
+        `UPDATE "_prisma_migrations"
+         SET finished_at = now(), applied_steps_count = 1 WHERE id = $1`,
+        [id],
       );
-      await sql`
-        UPDATE "_prisma_migrations"
-        SET finished_at = now(), applied_steps_count = 1 WHERE id = ${id}`;
     }
     console.log(`[migrate] applied ${pending.length} migration(s)`);
   } finally {
-    await sql.end();
+    await client.end();
   }
 }

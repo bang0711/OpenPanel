@@ -127,11 +127,12 @@ The image is **371MB** (measured): 98MB compiled API binary, 88MB Bun runtime,
 `node_modules`.
 
 Migrations: `op-server migrate` reads the committed `prisma/migrations/*.sql`
-and applies the pending ones, tracking them in Prisma's own `_prisma_migrations`
-table with the same checksums — so an existing Prisma-migrated database is
-picked up seamlessly. It exists only to *apply*; you still author migrations on
-a dev machine with `prisma migrate dev` (prisma is a dev dependency, never
-shipped). Editing an already-applied migration, a prior crashed apply, or a
+and applies the pending ones through the same `pg` driver the app uses (so one
+`DATABASE_URL` — SSL and all — behaves identically for both), tracking them in
+Prisma's own `_prisma_migrations` table with the same checksums — so an existing
+Prisma-migrated database is picked up seamlessly. It exists only to *apply*; you
+still author migrations on a dev machine with `prisma migrate dev` (prisma is a
+dev dependency, never shipped). Editing an already-applied migration, a prior crashed apply, or a
 missing `DATABASE_URL` each fail the role, which blocks the deploy rather than
 starting the API against a bad schema. Don't run `prisma migrate deploy` against
 a database the runner manages — the runner is the deploy path.
@@ -153,10 +154,18 @@ cd docker && docker compose up        # reads docker/.env
 ```
 
 Point `DATABASE_URL` at any reachable Postgres (managed, Cloud SQL, or a
-container you run). Two gotchas in the `.env`: a literal `$` in the password must
-be doubled (`$$`) — compose treats a single `$` as interpolation — and a
-managed/Cloud SQL host usually needs `?sslmode=require`. Production never reads
-this file; it injects the same values over ssh (see CD below).
+container you run). Two `.env` gotchas that bite in practice:
+
+- **A literal `$` in the password must be doubled to `$$`** — compose treats a
+  single `$` as variable interpolation.
+- **SSL for managed databases**: a host whose TLS certificate chains to a public
+  CA (Neon, Supabase) works with `?sslmode=require`. One whose CA isn't in the
+  container's trust store (Google **Cloud SQL**, RDS) needs `?sslmode=no-verify`
+  — encrypt without verifying the certificate. Both the migrations and the app
+  go through the same `pg` driver, so this one value covers the whole stack.
+
+Production never reads this file; it injects the same values over ssh (see CD
+below), so put the SSL parameter on the `DATABASE_URL` secret there too.
 
 ### Releasing (publish + deploy)
 
