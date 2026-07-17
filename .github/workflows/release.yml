@@ -82,6 +82,11 @@ jobs:
           SSH_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
           IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/open-panel:${{ needs.publish.outputs.version }}
+          # Optional. Set it when the panel uses a managed database, so CI owns
+          # the connection string. Leave it unset for a bundled-Postgres install:
+          # that DATABASE_URL is generated on the host and has to keep matching
+          # POSTGRES_PASSWORD there, so CI must not overwrite it.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           : "${DEPLOY_PATH:?set the DEPLOY_PATH repository variable, e.g. /opt/openpanel}"
