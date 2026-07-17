@@ -142,6 +142,21 @@ Building it locally (CI publishes — see below):
 docker build -t open-panel:0.1.0 .
 ```
 
+**Run the whole container stack locally** to verify the image before releasing.
+The `docker/` folder has a gitignored `.env` and a `docker-compose.local.yml`
+overlay that bundles a throwaway Postgres, so no external database or injected
+secrets are needed:
+
+```bash
+docker build -t open-panel:0.1.0 .    # build first — the stack won't pull it
+cd docker && docker compose up        # base stack + local Postgres
+# open http://localhost:3000, then: docker compose run --rm server seed
+```
+
+`docker/.env` sets `COMPOSE_FILE` to include the overlay, so a plain
+`docker compose up` picks up both files. Production never reads this — it has no
+`.env`, so only the base file (no database) runs there.
+
 ### Releasing (publish + deploy)
 
 ```bash
