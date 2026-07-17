@@ -18,5 +18,17 @@ export const auth = betterAuth({
     enabled: true,
     // Self-hosted panel: no public sign-up flow; users are provisioned by admins.
   },
+  advanced: {
+    ipAddress: {
+      // The backend always sits behind the same-origin proxy (proxy.ts rewrites
+      // /api/* to here), which forwards the real client IP as X-Forwarded-For.
+      // Without this, Better Auth can't resolve an IP and rate-limits every
+      // request into one shared bucket. Trusting the header is safe only because
+      // the proxy sets it; a client that reaches :3001 directly could spoof it,
+      // which at worst lets them evade the per-IP auth rate limit — the reason
+      // sign-up is closed and users are admin-provisioned.
+      ipAddressHeaders: ["x-forwarded-for"],
+    },
+  },
   plugins: [admin()],
 });
