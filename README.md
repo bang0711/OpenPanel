@@ -210,7 +210,7 @@ prerequisite on the box is Docker and an SSH user that can run it. Configure onc
 | `DATABASE_URL` | secret | Postgres connection string (bring your own DB) |
 | `BETTER_AUTH_SECRET` | secret | 32 bytes base64 — session signing + terminal-ticket HMAC |
 | `OPENPANEL_ENC_KEY` | secret | 32 bytes base64 — decrypts SSH creds at rest. **Never change it** |
-| `DEPLOY_PATH` | **variable** | e.g. `/opt/openpanel` — where the compose file is copied |
+| `DEPLOY_PATH` | **variable** | dir the compose file is copied to, **writable by `DEPLOY_USER`**. Use a home path like `/home/<user>/openpanel`; `/opt/openpanel` only works if you pre-create it (`sudo mkdir -p … && sudo chown <user> …`) |
 | `PUBLIC_URL` | **variable**, optional | e.g. `https://panel.example.com` (default `http://localhost:3000`) |
 | `PUBLIC_WS_URL` | **variable**, optional | e.g. `wss://panel.example.com:3001/api/terminal` |
 
