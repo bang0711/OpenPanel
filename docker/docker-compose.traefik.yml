@@ -1,0 +1,41 @@
+# Serve the panel through an existing Traefik reverse proxy instead of exposing
+# ports. Opt in by adding this file to COMPOSE_FILE and setting PANEL_HOST +
+# TRAEFIK_NETWORK (see README → "Behind Traefik"). Traefik reaches the
+# containers over its own docker network, so nothing needs a host port.
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.traefik.yml
+#   PANEL_HOST=panel.example.com
+#   TRAEFIK_NETWORK=<the network your Traefik is on>
+#
+# Two routers on one host: everything → web:3000, and the terminal websocket
+# (/api/terminal, which the browser opens directly) → server:3001.
+
+services:
+  web:
+    networks: [default, traefik]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${TRAEFIK_NETWORK}
+      traefik.http.routers.openpanel.rule: Host(`${PANEL_HOST}`)
+      traefik.http.routers.openpanel.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.openpanel.tls: "true"
+      traefik.http.routers.openpanel.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      traefik.http.services.openpanel.loadbalancer.server.port: "3000"
+
+  server:
+    networks: [default, traefik]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${TRAEFIK_NETWORK}
+      # More specific than the web router (Host + path), so Traefik matches the
+      # websocket here and sends it straight to the API, not through the web app.
+      traefik.http.routers.openpanel-ws.rule: Host(`${PANEL_HOST}`) && PathPrefix(`/api/terminal`)
+      traefik.http.routers.openpanel-ws.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.openpanel-ws.tls: "true"
+      traefik.http.routers.openpanel-ws.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      traefik.http.services.openpanel-ws.loadbalancer.server.port: "3001"
+
+networks:
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK}

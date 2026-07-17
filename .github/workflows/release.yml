@@ -92,6 +92,15 @@ jobs:
           # Public URLs (repo variables, not secrets). Default to localhost.
           PUBLIC_URL: ${{ vars.PUBLIC_URL }}
           PUBLIC_WS_URL: ${{ vars.PUBLIC_WS_URL }}
+          # Reverse-proxy (Traefik) integration — all optional. Leave COMPOSE_FILE
+          # unset to publish ports directly; set it to
+          # "docker-compose.yml:docker-compose.traefik.yml" plus PANEL_HOST +
+          # TRAEFIK_NETWORK to route through an existing Traefik instead.
+          COMPOSE_FILE: ${{ vars.COMPOSE_FILE }}
+          PANEL_HOST: ${{ vars.PANEL_HOST }}
+          TRAEFIK_NETWORK: ${{ vars.TRAEFIK_NETWORK }}
+          TRAEFIK_ENTRYPOINT: ${{ vars.TRAEFIK_ENTRYPOINT }}
+          TRAEFIK_CERTRESOLVER: ${{ vars.TRAEFIK_CERTRESOLVER }}
         run: |
           set -euo pipefail
           : "${DEPLOY_PATH:?set the DEPLOY_PATH repository variable, e.g. /opt/openpanel}"
@@ -111,7 +120,9 @@ jobs:
           # The compose file + remote script are not secret; copy them into place.
           # (deploy.sh is invoked by path, so it must land before the ssh call.)
           ssh $ssh_opts "$SSH_USER@$HOST" "mkdir -p '$DEPLOY_PATH'"
-          scp $ssh_opts docker/docker-compose.yml docker/deploy.sh \
+          # Both compose files ship; COMPOSE_FILE decides which are used. The
+          # traefik overlay is inert unless COMPOSE_FILE names it.
+          scp $ssh_opts docker/docker-compose.yml docker/docker-compose.traefik.yml docker/deploy.sh \
               "$SSH_USER@$HOST:$DEPLOY_PATH/"
 
           # Pipe config as KEY=value lines over stdin (the ssh channel): secrets
@@ -125,4 +136,11 @@ jobs:
             printf '%s\n' "OPENPANEL_ENC_KEY=$OPENPANEL_ENC_KEY"
             printf '%s\n' "PUBLIC_URL=${PUBLIC_URL:-http://localhost:3000}"
             printf '%s\n' "PUBLIC_WS_URL=${PUBLIC_WS_URL:-ws://localhost:3001/api/terminal}"
+            # Defaults to the base compose only; the traefik values are read by
+            # docker-compose.traefik.yml when COMPOSE_FILE names it.
+            printf '%s\n' "COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.yml}"
+            printf '%s\n' "PANEL_HOST=${PANEL_HOST:-}"
+            printf '%s\n' "TRAEFIK_NETWORK=${TRAEFIK_NETWORK:-}"
+            printf '%s\n' "TRAEFIK_ENTRYPOINT=${TRAEFIK_ENTRYPOINT:-websecure}"
+            printf '%s\n' "TRAEFIK_CERTRESOLVER=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
           } | ssh $ssh_opts "$SSH_USER@$HOST" "sh '$DEPLOY_PATH/deploy.sh' '$DEPLOY_PATH'"

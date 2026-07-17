@@ -240,6 +240,29 @@ instead. A plain **host reboot is fine**: Docker restarts the existing container
 (`restart: unless-stopped`) with the env baked in at creation. Rollback: re-tag
 an older version and let CI redeploy it.
 
+#### Behind an existing Traefik
+
+To serve the panel over HTTPS through a Traefik reverse proxy you already run
+(instead of exposing `:3000`/`:3001`), set these repo **variables** — the
+`docker-compose.traefik.yml` overlay picks them up:
+
+| Variable | Value |
+| --- | --- |
+| `COMPOSE_FILE` | `docker-compose.yml:docker-compose.traefik.yml` |
+| `PANEL_HOST` | `panel.example.com` — the panel's hostname |
+| `TRAEFIK_NETWORK` | the docker network your Traefik is on (`docker inspect <traefik> --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'`) |
+| `TRAEFIK_ENTRYPOINT` | optional, default `websecure` |
+| `TRAEFIK_CERTRESOLVER` | optional, default `letsencrypt` |
+| `PUBLIC_URL` | `https://panel.example.com` |
+| `PUBLIC_WS_URL` | `wss://panel.example.com/api/terminal` |
+
+Traefik reaches the containers over its own network, so nothing needs a host
+port — leave `:3000`/`:3001` closed at the firewall. Two routers are created on
+`PANEL_HOST`: everything → `web:3000`, and the terminal websocket
+(`/api/terminal`) → `server:3001`. `PANEL_HOST`'s DNS must point at the box
+before the first deploy, or Let's Encrypt can't issue the certificate. Leave
+`COMPOSE_FILE` unset to skip Traefik and publish ports directly.
+
 ## Tests
 
 **Every feature ships with tests** (backend and frontend) in the same change —
