@@ -8,24 +8,11 @@
 #   docker compose up -d
 #   docker compose run --rm server seed    # first admin user
 #   docker compose logs -f server
+#
+# Bring your own database: set DATABASE_URL in .env to a reachable Postgres
+# (managed or self-hosted). This stack does not run one.
 
 services:
-  db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: openpanel
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
-      POSTGRES_DB: open_panel
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U openpanel -d open_panel"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    # Not published to the host: only other containers reach it at db:5432.
-
   # Applies migrations, then exits. `server` waits for it to succeed, so the
   # API never races an unmigrated schema.
   migrate:
@@ -33,9 +20,6 @@ services:
     command: migrate
     environment:
       DATABASE_URL: ${DATABASE_URL:?set in .env}
-    depends_on:
-      db:
-        condition: service_healthy
     restart: "no"
 
   server:
@@ -50,8 +34,6 @@ services:
       # gates CORS. It is the WEB url, not this server's port.
       WEB_ORIGIN: ${PUBLIC_URL:-http://localhost:3000}
     depends_on:
-      db:
-        condition: service_healthy
       migrate:
         condition: service_completed_successfully
     ports:
@@ -73,6 +55,3 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
-
-volumes:
-  pgdata:

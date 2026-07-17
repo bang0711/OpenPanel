@@ -90,11 +90,16 @@ file and secrets for you:
 
 ```bash
 docker run --rm -v "$PWD:/output" open-panel:0.1.0 install
+# set DATABASE_URL in the generated .env (bring your own Postgres) — or pass it:
+#   docker run --rm -e DATABASE_URL=postgresql://… -v "$PWD:/output" open-panel:0.1.0 install
 docker compose up -d
 docker compose run --rm server seed     # first admin user
 ```
 
 Open http://localhost:3000 (`admin@openpanel.local` / `admin12345` — change it).
+
+The stack does not run a database — point `DATABASE_URL` at your own Postgres
+(managed like Neon/Supabase/RDS, or a container you run separately).
 
 `install` generates `docker-compose.yml` + `.env` with freshly generated secrets.
 It never runs Docker itself: that would mean baking the Docker CLI into every
@@ -176,14 +181,14 @@ deploys, it does not bootstrap. Configure once:
 | `DEPLOY_SSH_KEY` | secret | private key, full PEM including the header/footer lines |
 | `DEPLOY_KNOWN_HOSTS` | secret | output of `ssh-keyscan <host>` |
 | `DEPLOY_PATH` | **variable** | e.g. `/opt/openpanel` — the dir holding `docker-compose.yml` + `.env` |
-| `DATABASE_URL` | secret, **optional** | connection string for a **managed** database. Each deploy writes it into the host's `.env`, so CI owns it |
+| `DATABASE_URL` | secret, **optional** | Postgres connection string. Each deploy writes it into the host's `.env`, so CI owns it |
 
-Leave `DATABASE_URL` unset if you use the bundled Postgres from `install`: that
-string is generated on the host and has to keep matching `POSTGRES_PASSWORD`
-there, so CI overwriting it would break the stack. Setting it does **not** keep
-the string off the server — compose reads `.env`, so it still lives there at
-rest. What it buys is CI as the source of truth: rotate the secret, redeploy,
-done, with no hand-editing on the box.
+The stack does not run a database — you point `DATABASE_URL` at your own
+Postgres (managed or self-hosted). Set the secret to have CI own the string:
+each deploy writes it into the host's `.env`, so you rotate it in one place and
+redeploy, no hand-editing the box. Leave it unset to manage `DATABASE_URL`
+directly in the host's `.env` instead. Either way it lives in `.env` at rest —
+the secret moves *ownership* to CI, it doesn't keep the string off the server.
 
 The host key comes from a secret rather than an `ssh-keyscan` at deploy time: a
 scan trusts whoever answers first, and this connection carries a key with
