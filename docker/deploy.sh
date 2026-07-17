@@ -34,7 +34,15 @@ docker compose pull
 # Recreates `migrate` too (its image changed). `server` depends on it with
 # service_completed_successfully, so a failed migration fails this command
 # rather than starting the API against an unmigrated schema.
-docker compose up -d --remove-orphans
+#
+# On failure, dump the migrate log before exiting — otherwise CI only sees
+# "service migrate didn't complete successfully" with no reason (a bad
+# DATABASE_URL, a TLS/sslmode mismatch, an unreachable database).
+if ! docker compose up -d --remove-orphans; then
+  echo "==> deploy failed — migrate log:" >&2
+  docker compose logs --no-color --tail 40 migrate >&2 || true
+  exit 1
+fi
 docker compose ps
 
 # This host is the panel's own box; untagged layers from previous deploys pile
