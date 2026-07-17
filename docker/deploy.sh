@@ -1,61 +1,35 @@
 #!/bin/sh
-# Remote half of the CD deploy. Piped to the target host over stdin by
-# .github/workflows/release.yml:
+# Remote half of the CD deploy, run on the target host by
+# .github/workflows/release.yml. The workflow scps this file plus
+# docker-compose.yml into <dir>, then runs:
 #
-#   ssh host 'sh -s' -- <image> <dir> [database-url] < docker/deploy.sh
+#   printf '%s\n' KEY=val ... | ssh host "sh <dir>/deploy.sh <dir>"
 #
-# Nothing is interpolated into a remote shell string — the arguments arrive as
-# argv, the same rule the panel follows for the hosts it manages.
-#
-# The directory must already hold docker-compose.yml + .env from
-# `open-panel install`. This script deploys; it does not bootstrap.
+# The deployed server keeps NO .env file. Config (image tag, DATABASE_URL, the
+# secrets) arrives as KEY=value lines on stdin — over the ssh channel, never on
+# disk, never in argv (so not in the remote `ps`). compose interpolates them
+# from this process's environment.
 set -eu
 
-image=${1:?usage: deploy.sh <image> <dir> [database-url]}
-dir=${2:?usage: deploy.sh <image> <dir> [database-url]}
-# Optional: when CI holds the connection string for a managed database, it wins
-# over whatever .env says. Empty/absent leaves .env untouched, which is what a
-# bundled-Postgres install wants — its DATABASE_URL is generated on the host and
-# must keep matching POSTGRES_PASSWORD there.
-database_url=${3:-}
+dir=${1:?usage: deploy.sh <dir>}
+
+# Read KEY=value lines from stdin into the environment. Values may contain '='
+# (DATABASE_URL query strings) and spaces; only the first '=' splits.
+while IFS= read -r line; do
+  case "$line" in
+    *=*) export "$line" ;;
+  esac
+done
+
+# Fail early and clearly if the pipe delivered nothing (e.g. a broken ssh env).
+: "${IMAGE:?deploy: IMAGE not provided over stdin}"
+: "${DATABASE_URL:?deploy: DATABASE_URL not provided over stdin}"
+: "${BETTER_AUTH_SECRET:?deploy: BETTER_AUTH_SECRET not provided over stdin}"
+: "${OPENPANEL_ENC_KEY:?deploy: OPENPANEL_ENC_KEY not provided over stdin}"
 
 cd "$dir"
 
-if [ ! -f .env ] || [ ! -f docker-compose.yml ]; then
-  echo "error: $dir has no .env / docker-compose.yml." >&2
-  echo "  run \`open-panel install\` there first:" >&2
-  echo "  docker run --rm -v \"$dir:/output\" $image install" >&2
-  exit 1
-fi
-
-# Replace a KEY=value line in .env.
-#
-# Written *through* the existing file — never `mv` a temp over it — so the
-# installer's chmod 600 survives. .env holds OPENPANEL_ENC_KEY, which decrypts
-# every stored SSH credential; a mode of 644 on it is a real incident.
-set_env() {
-  key=$1
-  value=$2
-  tmp=$(mktemp)
-  # `|| true`: grep exits 1 when it filters out every line, which set -e would
-  # treat as failure.
-  grep -v "^$key=" .env > "$tmp" || true
-  printf '%s=%s\n' "$key" "$value" >> "$tmp"
-  cat "$tmp" > .env
-  rm -f "$tmp"
-}
-
-# Pin the tag in .env rather than only exporting IMAGE for this one compose
-# call: a later manual `docker compose up` on the host must keep the deployed
-# version instead of silently reverting to whatever .env still said.
-set_env IMAGE "$image"
-
-if [ -n "$database_url" ]; then
-  set_env DATABASE_URL "$database_url"
-  echo "==> DATABASE_URL updated from CI"
-fi
-
-echo "==> deploying $image"
+echo "==> deploying $IMAGE"
 docker compose pull
 # Recreates `migrate` too (its image changed). `server` depends on it with
 # service_completed_successfully, so a failed migration fails this command
@@ -63,6 +37,6 @@ docker compose pull
 docker compose up -d --remove-orphans
 docker compose ps
 
-# The box this runs on is the panel's own host; untagged layers from previous
-# deploys pile up otherwise. Dangling only — never touches tagged images.
+# This host is the panel's own box; untagged layers from previous deploys pile
+# up otherwise. Dangling only — never touches tagged images.
 docker image prune -f

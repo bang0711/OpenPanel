@@ -105,6 +105,8 @@ and a tab in `components/servers/server-nav.tsx`).
   correctly. Still unverified: a full `compose up` of the whole stack, browser sign-in, the terminal
   websocket, and registering a real host (`detectOs` / fingerprint pin) — those need the web + a
   live sshd.
-- CD deploys, it does not bootstrap: `DEPLOY_PATH` must already contain `docker-compose.yml` + `.env`
-  from `open-panel install`, and the deploy is single-host (no rolling restart — brief downtime while
-  compose recreates the containers).
+- CD keeps no `.env` on the server: config is injected over the ssh channel at deploy time, and CI
+  copies the compose file into `DEPLOY_PATH` itself. The box needs only Docker + an SSH user. A bare
+  `docker compose up` on the host (after a manual `down`) has nothing to interpolate and fails —
+  redeploy through CI. Deploy is single-host (no rolling restart — brief downtime while compose
+  recreates the containers).

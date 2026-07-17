@@ -171,8 +171,10 @@ pushed image would disagree about what `v1.0.0` is.
 The `deploy` job runs after `publish`, so only an image that passed the gates and
 reached the registry is ever deployed.
 
-The target directory must already be set up with `open-panel install` — CD
-deploys, it does not bootstrap. Configure once:
+**The deployed host keeps no `.env`.** CI copies the compose file into place and
+injects every config value at deploy time over the ssh channel — nothing is
+written to the server's disk, and the secrets never appear in its `ps`. The only
+prerequisite on the box is Docker and an SSH user that can run it. Configure once:
 
 | Name | Kind | Value |
 | --- | --- | --- |
@@ -180,33 +182,38 @@ deploys, it does not bootstrap. Configure once:
 | `DEPLOY_USER` | secret | SSH user (must be able to run `docker`) |
 | `DEPLOY_SSH_KEY` | secret | private key, full PEM including the header/footer lines |
 | `DEPLOY_KNOWN_HOSTS` | secret | output of `ssh-keyscan <host>` |
-| `DEPLOY_PATH` | **variable** | e.g. `/opt/openpanel` — the dir holding `docker-compose.yml` + `.env` |
-| `DATABASE_URL` | secret, **optional** | Postgres connection string. Each deploy writes it into the host's `.env`, so CI owns it |
+| `DATABASE_URL` | secret | Postgres connection string (bring your own DB) |
+| `BETTER_AUTH_SECRET` | secret | 32 bytes base64 — session signing + terminal-ticket HMAC |
+| `OPENPANEL_ENC_KEY` | secret | 32 bytes base64 — decrypts SSH creds at rest. **Never change it** |
+| `DEPLOY_PATH` | **variable** | e.g. `/opt/openpanel` — where the compose file is copied |
+| `PUBLIC_URL` | **variable**, optional | e.g. `https://panel.example.com` (default `http://localhost:3000`) |
+| `PUBLIC_WS_URL` | **variable**, optional | e.g. `wss://panel.example.com:3001/api/terminal` |
 
-The stack does not run a database — you point `DATABASE_URL` at your own
-Postgres (managed or self-hosted). Set the secret to have CI own the string:
-each deploy writes it into the host's `.env`, so you rotate it in one place and
-redeploy, no hand-editing the box. Leave it unset to manage `DATABASE_URL`
-directly in the host's `.env` instead. Either way it lives in `.env` at rest —
-the secret moves *ownership* to CI, it doesn't keep the string off the server.
+⚠️ **`OPENPANEL_ENC_KEY` must stay constant for the life of the install.** It
+decrypts the SSH credentials stored in the database; a new value orphans every
+registered server. Generate it once
+(`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`),
+set the secret, and never rotate it. The same applies to `DATABASE_URL` pointing
+at the same database — a fresh DB starts empty.
 
 The host key comes from a secret rather than an `ssh-keyscan` at deploy time: a
 scan trusts whoever answers first, and this connection carries a key with
 root-equivalent rights on the panel's own host. OpenPanel pins fingerprints for
-the servers it manages; its own deploy holds the same bar. `DEPLOY_PATH` is a
-variable, not a secret — a path isn't sensitive, and masking it only makes failed
-runs harder to read.
+the servers it manages; its own deploy holds the same bar. Paths and public URLs
+are variables, not secrets — masking them only makes failed runs harder to read.
 
-The remote half is `docker/deploy.sh`, piped over stdin and given its arguments
-as argv, so nothing is interpolated into a remote shell string. It pins `IMAGE=`
-in the host's `.env` (so a later manual `docker compose up` keeps the deployed
-version), then pulls and restarts. Migrations need no extra step: `up -d`
-recreates `migrate`, and `server`'s `service_completed_successfully` dependency
-means a failed migration fails the deploy instead of starting the API against an
+The remote half is `docker/deploy.sh` (scp'd alongside the compose file). Config
+arrives as `KEY=value` lines on its stdin, which it reads into the environment;
+compose interpolates from there. Migrations need no extra step: `up -d` recreates
+`migrate`, and `server`'s `service_completed_successfully` dependency means a
+failed migration fails the deploy instead of starting the API against an
 unmigrated schema.
 
-Rollback: re-tag an older version, or edit `IMAGE=` in the host's `.env` and run
-`docker compose up -d`.
+Because config is injected at `up`, a bare `docker compose up` on the box (after
+a manual `down`) has nothing to interpolate and will fail — redeploy through CI
+instead. A plain **host reboot is fine**: Docker restarts the existing containers
+(`restart: unless-stopped`) with the env baked in at creation. Rollback: re-tag
+an older version and let CI redeploy it.
 
 ## Tests
 

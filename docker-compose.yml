@@ -19,16 +19,16 @@ services:
     image: ${IMAGE:-open-panel:0.1.0}
     command: migrate
     environment:
-      DATABASE_URL: ${DATABASE_URL:?set in .env}
+      DATABASE_URL: ${DATABASE_URL:?required (injected by CI, or set in .env for a manual install)}
     restart: "no"
 
   server:
     image: ${IMAGE:-open-panel:0.1.0}
     command: server
     environment:
-      DATABASE_URL: ${DATABASE_URL:?set in .env}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set in .env}
-      OPENPANEL_ENC_KEY: ${OPENPANEL_ENC_KEY:?set in .env}
+      DATABASE_URL: ${DATABASE_URL:?required (injected by CI, or set in .env for a manual install)}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?required (injected by CI, or set in .env for a manual install)}
+      OPENPANEL_ENC_KEY: ${OPENPANEL_ENC_KEY:?required (injected by CI, or set in .env for a manual install)}
       PORT: "3001"
       # Browser-facing web origin: scopes the auth cookie, builds redirect URLs,
       # gates CORS. It is the WEB url, not this server's port.
