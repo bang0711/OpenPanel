@@ -3,6 +3,7 @@
 // instead of one per task.
 //
 //   op-server          -> start the API + terminal ws (default)
+//   op-server migrate  -> apply pending DB migrations, then exit
 //   op-server seed     -> create the first admin user, then exit
 //
 // Local dev still runs `src/index.ts` directly via `bun run dev`.
@@ -10,7 +11,11 @@ export {}; // top-level await requires this file to be a module
 
 const cmd = process.argv[2] ?? "serve";
 
-if (cmd === "seed") {
+if (cmd === "migrate") {
+  const { runMigrations } = await import("@/db/migrate");
+  await runMigrations();
+  process.exit(0);
+} else if (cmd === "seed") {
   const { seedAdmin } = await import("@/seed");
   await seedAdmin();
   process.exit(0);
@@ -18,6 +23,8 @@ if (cmd === "seed") {
   // Side-effectful: binds the port and starts the scheduler.
   await import("@/index");
 } else {
-  console.error(`unknown command: ${cmd}\nusage: op-server [serve|seed]`);
+  console.error(
+    `unknown command: ${cmd}\nusage: op-server [serve|migrate|seed]`,
+  );
   process.exit(1);
 }

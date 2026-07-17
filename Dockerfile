@@ -48,28 +48,11 @@ ENV NODE_ENV=production
 # Next's standalone server binds 127.0.0.1 by default, unreachable from outside.
 ENV HOSTNAME=0.0.0.0
 
-# Prisma CLI for the `migrate` role — installed HERE, not copied from the build
-# stage, because the schema-engine is platform-specific (build is glibc, this
-# is musl).
-#
-# Only prisma + dotenv, NOT the whole @openpanel/server tree: the server/seed
-# roles run the compiled binary and web runs standalone, so nothing at runtime
-# needs elysia/better-auth/pg/ssh2/@prisma/client. Installing the full tree here
-# added ~900MB the image never runs. Verified: `prisma migrate deploy` applies
-# the migrations from a prisma-only install.
-#
-# Versions come from the app's own package.json so they cannot drift. This
-# isolated install cannot use the root lockfile, so it is not --frozen; prisma
-# pins its engine version internally, which is what migrate correctness depends
-# on. dotenv is needed because prisma.config.ts imports it.
-COPY apps/server/package.json /app/server/app-package.json
-COPY apps/server/prisma /app/server/prisma
-COPY apps/server/prisma.config.ts /app/server/
-RUN cd /app/server \
-  && bun -e 'const d=require("./app-package.json").dependencies; require("fs").writeFileSync("package.json", JSON.stringify({ name: "migrate", dependencies: { prisma: d.prisma, dotenv: d.dotenv } }))' \
-  && bun install --production \
-  && rm -f app-package.json \
-  && rm -rf /root/.bun/install/cache ~/.cache
+# The `migrate` role runs `op-server migrate`, a SQL applier compiled into the
+# binary — no prisma CLI, no schema-engine, no node_modules in the image (that
+# was ~235MB). It needs only the migration .sql files, which it reads from here;
+# `prisma migrate dev` on a dev machine still authors them. See src/db/migrate.ts.
+COPY apps/server/prisma/migrations /app/server/prisma/migrations
 
 # server + seed roles: the compiled binary is the whole payload.
 COPY --from=build /src/apps/server/dist/op-server /app/op-server

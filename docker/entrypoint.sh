@@ -11,8 +11,10 @@ case "${1:-}" in
     exec /app/op-server seed
     ;;
   migrate)
+    # Applies pending migrations via the compiled binary (no prisma CLI in the
+    # image). cd so the runner finds ./prisma/migrations.
     cd /app/server
-    exec bunx prisma migrate deploy
+    exec /app/op-server migrate
     ;;
   web)
     # Next standalone server. HOSTNAME=0.0.0.0 so it's reachable outside the
