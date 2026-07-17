@@ -81,7 +81,7 @@ Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toStri
 | `bun run test` | **the gate**: typecheck → lint → `bun test` (all workspaces). CI runs this; `release` refuses to publish without it |
 | `bun run typecheck` / `lint` | one gate across every workspace |
 | `bun run update <version>` | bump the version in every `package.json` **and** the Docker image tags in compose/install/docs, in lockstep |
-| `bun run release` | gates → `docker build` → push `$DOCKER_REPO:<version>` + `:latest` → `git tag`. Needs `DOCKER_REPO`; refuses a dirty tree. `--dry-run` builds without pushing |
+| `bun run release` | gates → `git tag v<version>` → push the tag, which is what triggers CI to build, publish and deploy. Refuses a dirty tree or an existing tag; no Docker needed locally. `--dry-run` gates without tagging |
 
 ### Docker
 
@@ -117,19 +117,40 @@ One image, four roles (compose runs the same image three times):
 | `migrate` | `prisma migrate deploy`, then exits. `server` waits on `service_completed_successfully`, so the API never races an unmigrated schema |
 | `seed` | Creates the first admin user, then exits |
 
-Building and publishing your own:
+Building it locally (CI publishes — see below):
 
 ```bash
 docker build -t open-panel:0.1.0 .
-bun run update 1.0.0                          # bump version + image tags
-DOCKER_REPO=youruser/open-panel bun run release
 ```
+
+### Releasing (publish + deploy)
+
+```bash
+bun run update 1.0.0                  # bump version + image tags everywhere
+git commit -am "chore: release v1.0.0"
+bun run release                       # gates -> tag -> push tag
+```
+
+**Everything is published from CI, never from a laptop.** `bun run release` only
+gates and pushes the tag; the tag is the trigger. `.github/workflows/release.yml`
+then re-runs the gates, builds the image, pushes `<user>/open-panel:<version>` +
+`:latest` to Docker Hub, and deploys. So the published image always comes from a
+clean checkout of a tagged commit, built by the runner — not from whatever was in
+one machine's working tree or Docker cache, and it can't be published twice.
+
+Needs `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN` (write scope) as secrets. The repo
+is created public on first push, per your Docker Hub **Default repository
+privacy** setting — public matters, since `open-panel install` on a user's box
+pulls anonymously.
+
+Releases are immutable: `release` refuses a tag that already exists. Re-releasing
+means `bun run update` to a new version, never moving a tag — a moved tag and a
+pushed image would disagree about what `v1.0.0` is.
 
 ### Continuous deployment
 
-Pushing a `v*` tag runs the gates, publishes to Docker Hub, then deploys to your
-server over SSH (`deploy` job in `.github/workflows/release.yml`). It only ever
-deploys an image that already passed the gates and was published.
+The `deploy` job runs after `publish`, so only an image that passed the gates and
+reached the registry is ever deployed.
 
 The target directory must already be set up with `open-panel install` — CD
 deploys, it does not bootstrap. Configure once:
