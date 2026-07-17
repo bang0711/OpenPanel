@@ -45,6 +45,13 @@ if ! docker compose up -d --remove-orphans; then
 fi
 docker compose ps
 
-# This host is the panel's own box; untagged layers from previous deploys pile
-# up otherwise. Dangling only — never touches tagged images.
+# Reclaim disk. `prune -f` only clears dangling layers, so old open-panel:<ver>
+# tags from previous releases pile up (~371MB each) until the disk fills and the
+# next scp/pull fails. Drop every tag of THIS image's repository except the one
+# just deployed. Filtering by "${IMAGE%:*}" scopes it to open-panel — other
+# apps' images are never listed, so never touched. A tag still used by a running
+# container can't be removed (rmi fails, ignored).
 docker image prune -f
+docker images "${IMAGE%:*}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null \
+  | grep -vxF "$IMAGE" \
+  | xargs -r docker rmi 2>/dev/null || true
