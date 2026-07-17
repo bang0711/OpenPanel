@@ -24,10 +24,9 @@ COPY . .
 # (prisma-client generator + @prisma/adapter-pg) emits pure JS/WASM with no
 # native query engine, so it embeds into the binary and needs no node_modules
 # at runtime.
-# prisma.config.ts eagerly resolves DATABASE_URL via env(), but `generate` only
-# reads the schema — it never connects. Give it a placeholder so config load
-# doesn't throw; the real URL is supplied at migrate time from .env.
-RUN cd apps/server && DATABASE_URL="postgresql://placeholder" bunx prisma generate
+# `generate` only reads the schema — it never connects. prisma.config.ts reads
+# DATABASE_URL directly (not env()), so a missing var no longer throws here.
+RUN cd apps/server && bunx prisma generate
 
 # Compile the API to one binary, reusing the app's own build script so the
 # flags live in one place (--external cpu-features etc.). Bun reports 2-3x

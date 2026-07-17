@@ -2,7 +2,7 @@
 // npm install --save-dev prisma dotenv
 import "dotenv/config";
 
-import { defineConfig,env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema",
@@ -10,6 +10,11 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // Read directly, NOT prisma's env() — env() throws at config load when the
+    // var is missing, which breaks `prisma generate` in CI and the Docker build
+    // (generate reads the schema and never connects). Commands that DO need a
+    // connection (migrate dev) still fail clearly when it's empty. Runtime
+    // migrations run through op-server, not this config.
+    url: process.env.DATABASE_URL ?? "",
   },
 });
