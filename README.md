@@ -143,19 +143,20 @@ docker build -t open-panel:0.1.0 .
 ```
 
 **Run the whole container stack locally** to verify the image before releasing.
-The `docker/` folder has a gitignored `.env` and a `docker-compose.local.yml`
-overlay that bundles a throwaway Postgres, so no external database or injected
-secrets are needed:
+Create a gitignored `docker/.env` with `IMAGE`, your `DATABASE_URL`, and the two
+secrets (`BETTER_AUTH_SECRET`, `OPENPANEL_ENC_KEY`), then:
 
 ```bash
-docker build -t open-panel:0.1.0 .    # build first — the stack won't pull it
-cd docker && docker compose up        # base stack + local Postgres
+docker build -t open-panel:latest .   # build first — the stack won't pull it
+cd docker && docker compose up        # reads docker/.env
 # open http://localhost:3000, then: docker compose run --rm server seed
 ```
 
-`docker/.env` sets `COMPOSE_FILE` to include the overlay, so a plain
-`docker compose up` picks up both files. Production never reads this — it has no
-`.env`, so only the base file (no database) runs there.
+Point `DATABASE_URL` at any reachable Postgres (managed, Cloud SQL, or a
+container you run). Two gotchas in the `.env`: a literal `$` in the password must
+be doubled (`$$`) — compose treats a single `$` as interpolation — and a
+managed/Cloud SQL host usually needs `?sslmode=require`. Production never reads
+this file; it injects the same values over ssh (see CD below).
 
 ### Releasing (publish + deploy)
 
