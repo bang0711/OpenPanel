@@ -1,6 +1,6 @@
 # OpenPanel — reference stack; this is the template the installer emits.
 # On a fresh host you don't need this file, just the image:
-#   docker run --rm -v "$PWD:/output" open-panel:1.1.1 install
+#   docker run --rm -v "$PWD:/output" open-panel:1.2.0 install
 # which writes docker-compose.yml + .env (with generated secrets) for you.
 #
 # Settings live in .env next to this file. One image runs every role.
@@ -16,14 +16,14 @@ services:
   # Applies migrations, then exits. `server` waits for it to succeed, so the
   # API never races an unmigrated schema.
   migrate:
-    image: ${IMAGE:-open-panel:1.1.1}
+    image: ${IMAGE:-open-panel:1.2.0}
     command: migrate
     environment:
       DATABASE_URL: ${DATABASE_URL:?required (injected by CI, or set in .env for a manual install)}
     restart: "no"
 
   server:
-    image: ${IMAGE:-open-panel:1.1.1}
+    image: ${IMAGE:-open-panel:1.2.0}
     command: server
     environment:
       DATABASE_URL: ${DATABASE_URL:?required (injected by CI, or set in .env for a manual install)}
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: ${IMAGE:-open-panel:1.1.1}
+    image: ${IMAGE:-open-panel:1.2.0}
     command: web
     environment:
       # Server-side reach to the API over the compose network (proxy.ts + RSC).
