@@ -180,6 +180,22 @@ Whenever you add or change a feature, in the **same change**:
 - Update `ROADMAP.md` — check off the shipped item / move it out of "Planned".
 - Update `README.md` — reflect any new stack, script, env var, structure, or
   convention. Do not consider a feature done until both docs are updated.
+- **Explain the mechanism, not just the surface.** For anything non-obvious, the
+  README says *how it actually works and why* — the moving parts a reader can't
+  infer from the feature name. What executes where, what the trust boundary is,
+  what host/runtime assumption it relies on, what breaks if that assumption
+  fails. Examples already in the README: privileged actions run `sudo` over a
+  non-interactive SSH channel so managed hosts need passwordless sudo; the API
+  runs as a bundled JS on the shared bun (not a `--compile` binary) so bun ships
+  once; `OPENPANEL_ENC_KEY` decrypts stored SSH creds so changing it orphans
+  every server. If a user would reasonably ask "but what actually happens behind
+  this?", the answer belongs in the README, not only in a reply.
+- **Keep the README styled and scannable.** It is the front door — match the
+  existing style: `##`/`###` section headers, tables for option/variable/role
+  matrices, fenced code blocks with a language tag for every command, **bold**
+  for the one takeaway per paragraph, and short prose over walls of text. New
+  content slots into the right existing section rather than being appended to the
+  end; don't let it drift into an unformatted dump.
 
 ## i18n — keep all locales in sync (required)
 
