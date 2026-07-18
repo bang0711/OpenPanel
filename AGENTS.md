@@ -162,6 +162,13 @@ laptop, a phone on the dashboard. Small is a feature, not a nice-to-have.
   allowlists/regex; prefer SFTP over shell for file ops; feed dynamic content
   via stdin (`runCommandInput`) not the command string. Normalize remote paths
   to reject traversal.
+- **Root-needing commands go through `runPrivileged`/`runPrivilegedInput`**
+  (`lib/ssh/client.ts`), never a hardcoded `sudo`. It escalates for the host's
+  detected sudo mode (root / `nopasswd` / sudo password on stdin) so a feature
+  works however the user connected. Pass a plain command (no `sudo`); the only
+  exception is `sudo -u <user>` (a user-switch for peer auth, not root). System
+  config files under `/etc` that need root are read/written with escalated
+  `cat`/`tee` — SFTP can't be elevated by sudo.
 - SSH credentials are encrypted at rest (`apps/server/src/lib/crypto.ts`); never
   return them to the client.
 - Keep live infra data uncached (freshness = correctness). Only bundle/​cache

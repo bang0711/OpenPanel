@@ -12,6 +12,7 @@ const base = {
   password: "",
   keyText: "",
   passphrase: "",
+  sudoPassword: "",
 };
 
 describe("buildServerUpdate", () => {
@@ -48,6 +49,13 @@ describe("buildServerUpdate", () => {
       buildServerUpdate({ ...base, authType: "key", keyText: "k", passphrase: "pp" })
         .passphrase,
     ).toBe("pp");
+  });
+
+  it("includes the sudo password only when provided", () => {
+    expect(buildServerUpdate(base).sudoPassword).toBeUndefined();
+    expect(
+      buildServerUpdate({ ...base, sudoPassword: "s3cret" }).sudoPassword,
+    ).toBe("s3cret");
   });
 
   it("trims tags and drops blanks", () => {

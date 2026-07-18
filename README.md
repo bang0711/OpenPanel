@@ -72,13 +72,17 @@ substrate below and each feature is a thin, predictable layer on top.
    (never a denylist) — e.g. the `ssl` email validator is an allowlist precisely
    so `;`, `|`, `` ` ``, `$(…)` can't reach `certbot`.
 
-**Privilege — two models.** Some commands are prefixed with `sudo` (`db`,
-`query`, `db-backup`, `backups`, `packages`/`catalog` installs, `bulk` writes) —
-these need the SSH user to have **passwordless sudo**. Others run **bare** and
-assume the user already holds the right (`systemctl`, `ufw`, `certbot`,
-`useradd`, `nginx`, `shutdown`, `docker`) — i.e. root or a group membership. In
-practice: **register hosts as root, or as a NOPASSWD-sudo user.** A missing
-privilege surfaces as a permission error (or, for `power`, a silent no-op).
+**Privilege — one central escalation.** Every root-needing command goes through
+`runPrivileged`/`runPrivilegedInput` (`lib/ssh/client.ts` + `privilege.ts`),
+which wraps it in `sh -c` for the host's detected sudo mode: **root** runs bare,
+**`nopasswd`** uses `sudo -n`, **`password`** uses `sudo -S` with the password on
+stdin. The mode is probed on Test connection and stored per server; the sudo
+password is an explicit per-server override or, for password auth, the login
+password. Modules therefore hold **no `sudo`** of their own (except
+`sudo -u postgres`, a user-switch for peer auth) — so the same feature works for
+a root user, a NOPASSWD key-user, or a sudo-password user without any per-module
+change. Config files under `/etc` (`vhost`/`proxy`/`dns`) are read/written with
+escalated `cat`/`tee` rather than SFTP, since sudo can't elevate an SFTP transfer.
 
 ### Servers & connection
 
@@ -115,14 +119,13 @@ server.
   `journalctl`, `ps` for processes, `kill -<SIGNAL>` with a `TERM/KILL/HUP`
   allowlist and an integer PID > 1. Unit names match a strict regex.
 - **Packages** — first `command -v` detects apt/dnf/apk, then acts. Names are
-  allowlisted before interpolation. Mutations run under `sudo` (apt via
-  `sudo env DEBIAN_FRONTEND=noninteractive apt-get …`, since a default sudoers
-  policy rejects `sudo VAR=val`); list/search stay unprivileged.
+  allowlisted before interpolation. Mutations run through the central escalation
+  (`runPrivileged`); list/search stay unprivileged.
 - **App catalog** — one-click installs from **static, author-defined** scripts
   (no user input interpolated). You supply only an app `id`, resolved with
   `Object.hasOwn` so prototype keys (`__proto__`, `constructor`) can't slip
-  through. Package-based apps use the same sudo'd manager commands; Docker uses
-  the official `get.docker.com` script.
+  through. Package-based apps escalate the manager command; Docker uses the
+  official `get.docker.com` script.
 
 ### Files & terminal
 
@@ -184,9 +187,9 @@ server.
 
 ### Databases
 
-- **Manager** — `sudo mysql` / `sudo -u postgres psql`; identifiers are
-  allowlisted (`^[A-Za-z0-9_]+$`, ≤64) and passwords are delivered as SQL over
-  **stdin**, never argv.
+- **Manager** — `mysql` (escalated to root) / `sudo -u postgres psql` (peer-auth
+  user-switch); identifiers are allowlisted (`^[A-Za-z0-9_]+$`, ≤64) and
+  passwords are delivered as SQL over **stdin**, never argv.
 - **Query console** — arbitrary SQL piped to the client over **stdin** (only the
   DB name is interpolated, and validated); NUL bytes rejected, SQL capped, and
   the transport's `truncated` flag surfaced to the UI.
@@ -232,13 +235,23 @@ bun run dev                   # web :3000 + API/ws :3001
 Open http://localhost:3000, sign in, and add a server. API reference (dev):
 http://localhost:3001/api/docs.
 
-**Managed hosts need passwordless sudo.** Privileged actions (package install,
-service control, user/db management, firewall, backups) run over SSH as the
-registered user via `sudo`, non-interactively — so that user must have NOPASSWD
-sudo, or be root. Otherwise operations like installing nginx fail with e.g.
-`Could not open lock file … Permission denied`. Grant it with a sudoers drop-in
-on the managed host, e.g. `echo '<user> ALL=(ALL) NOPASSWD:ALL' | sudo tee
-/etc/sudoers.d/openpanel` (scope it down if you prefer).
+**Privileged actions escalate however you connected.** Package install, service
+control, user/db management, firewall, backups etc. need root. On **Test
+connection** the panel probes how the SSH user reaches root and stores the mode,
+then every privileged command uses the right form:
+
+- **root** → runs bare.
+- **passwordless sudo** (`NOPASSWD`) → `sudo -n` (common for cloud key-users like
+  `ubuntu`/`ec2-user`).
+- **sudo password** → `sudo -S`, password fed on **stdin** (never the command
+  line). For password-auth hosts the login password is reused; for key-auth
+  hosts, set an optional **sudo password** on the add/edit-server form.
+
+So nothing is required up front for a root or NOPASSWD-sudo user. Only a host
+that genuinely needs a sudo password the panel doesn't have will refuse
+privileged actions — with a clear message — and the fix is to set that sudo
+password or grant NOPASSWD (`echo '<user> ALL=(ALL) NOPASSWD:ALL' | sudo tee
+/etc/sudoers.d/openpanel`).
 
 **The docs are not exposed in production.** Two layers: the Scalar UI is only
 mounted when `NODE_ENV !== production` or `ENABLE_API_DOCS=true`, so on a normal

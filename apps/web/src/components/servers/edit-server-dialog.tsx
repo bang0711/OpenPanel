@@ -54,6 +54,7 @@ export function EditServerDialog({ server }: { server: Server }) {
           password: String(form.get("password") || ""),
           keyText,
           passphrase: String(form.get("passphrase") || ""),
+          sudoPassword: String(form.get("sudoPassword") || ""),
         }),
       );
       toast.success(t("servers.updated"));
@@ -172,6 +173,20 @@ export function EditServerDialog({ server }: { server: Server }) {
               </div>
             </>
           )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-sudoPassword">
+              {t("servers.sudoPassword")}
+            </Label>
+            <Input
+              id="edit-sudoPassword"
+              name="sudoPassword"
+              type="password"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("servers.sudoPasswordHint")}
+            </p>
+          </div>
 
           <DialogFooter>
             <Button type="submit" disabled={saving}>

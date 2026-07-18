@@ -20,6 +20,9 @@ and a tab in `components/servers/server-nav.tsx`).
 - [x] Server registry — add / edit / delete, SSH creds encrypted at rest, TOFU host-key pinning
       (re-pinned when host/port changes), password/key upload, distro detection
       (`/etc/os-release` → allowlisted `osId`) with per-distro brand icons
+- [x] Privilege escalation — every root-needing command runs through `runPrivileged`, which adapts
+      to the host's detected sudo mode (root / passwordless sudo / sudo password fed on stdin);
+      works for a root user, a NOPASSWD key-user, or a sudo-password user with no per-module change
 - [x] System dashboard — CPU / RAM / disk / load / uptime (5s poll)
 - [x] Services & processes — systemctl start/stop/restart/enable/disable, journal logs, ps/kill
 - [x] File manager (SFTP) — browse, edit, upload, download, chmod, rename, mkdir, delete

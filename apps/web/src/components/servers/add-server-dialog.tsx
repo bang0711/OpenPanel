@@ -49,6 +49,7 @@ export function AddServerDialog() {
         secret:
           authType === "password" ? String(form.get("password")) : keyText,
         passphrase: String(form.get("passphrase") || "") || undefined,
+        sudoPassword: String(form.get("sudoPassword") || "") || undefined,
         tags: String(form.get("tags") || "")
           .split(",")
           .map((s) => s.trim())
@@ -149,6 +150,14 @@ export function AddServerDialog() {
               </div>
             </>
           )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="sudoPassword">{t("servers.sudoPassword")}</Label>
+            <Input id="sudoPassword" name="sudoPassword" type="password" />
+            <p className="text-xs text-muted-foreground">
+              {t("servers.sudoPasswordHint")}
+            </p>
+          </div>
 
           <DialogFooter>
             <Button type="submit" disabled={saving}>

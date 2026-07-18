@@ -13,6 +13,9 @@ export const servers: LocaleDict = {
     "servers.password": "Password",
     "servers.passphraseOptional": "Passphrase (optional)",
     "servers.privateKey": "Private key",
+    "servers.sudoPassword": "Sudo password (optional)",
+    "servers.sudoPasswordHint":
+      "Only if this host needs a password for sudo. Leave blank for root, passwordless sudo, or to reuse the login password.",
     "servers.saveServer": "Save server",
     "servers.added": "Server added",
     "servers.addFailed": "Failed to add server",
@@ -51,6 +54,9 @@ export const servers: LocaleDict = {
     "servers.password": "Mật khẩu",
     "servers.passphraseOptional": "Cụm mật khẩu (tùy chọn)",
     "servers.privateKey": "Khóa riêng tư",
+    "servers.sudoPassword": "Mật khẩu sudo (tùy chọn)",
+    "servers.sudoPasswordHint":
+      "Chỉ cần nếu máy chủ này yêu cầu mật khẩu cho sudo. Để trống nếu là root, sudo không mật khẩu, hoặc để dùng lại mật khẩu đăng nhập.",
     "servers.saveServer": "Lưu máy chủ",
     "servers.added": "Đã thêm máy chủ",
     "servers.addFailed": "Không thể thêm máy chủ",

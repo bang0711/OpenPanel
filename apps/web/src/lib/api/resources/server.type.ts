@@ -6,6 +6,9 @@ export type Server = {
   port: number;
   username: string;
   authType: "password" | "key";
+  /** How the SSH user reaches root: 'none' (root) | 'nopasswd' | 'password'.
+   *  Null until the server is tested. */
+  sudoMode: string | null;
   hostFingerprint: string | null;
   /** /etc/os-release ID, e.g. "debian". Null until the server is tested. */
   osId: string | null;
@@ -23,6 +26,9 @@ export type ServerCreateInput = {
   authType: "password" | "key";
   secret: string;
   passphrase?: string;
+  /** Optional sudo password. Omit to reuse the login password (password auth)
+   *  or rely on root / passwordless sudo. */
+  sudoPassword?: string;
   tags?: string[];
 };
 
@@ -36,6 +42,7 @@ export type ServerUpdateInput = {
   authType?: "password" | "key";
   secret?: string;
   passphrase?: string;
+  sudoPassword?: string;
   tags?: string[];
 };
 

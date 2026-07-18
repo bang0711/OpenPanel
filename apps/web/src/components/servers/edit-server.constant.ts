@@ -16,6 +16,7 @@ export function buildServerUpdate(v: {
   password: string;
   keyText: string;
   passphrase: string;
+  sudoPassword: string;
 }): ServerUpdateInput {
   const secret = v.authType === "password" ? v.password : v.keyText;
   const out: ServerUpdateInput = {
@@ -32,5 +33,7 @@ export function buildServerUpdate(v: {
   if (secret) out.secret = secret;
   // Passphrase only applies to a key, and blank means "leave it as-is".
   if (v.authType === "key" && v.passphrase) out.passphrase = v.passphrase;
+  // Sudo password: blank = keep current.
+  if (v.sudoPassword) out.sudoPassword = v.sudoPassword;
   return out;
 }
