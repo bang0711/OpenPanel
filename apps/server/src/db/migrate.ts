@@ -1,7 +1,7 @@
 // Applies pending migrations at container start (the `migrate` role), replacing
 // `prisma migrate deploy`. The prisma CLI + schema-engine (~235MB) exists to
 // *author* migrations; applying already-authored .sql files needs none of it,
-// so it is done here and compiled into the op-server binary. Authoring still
+// so it is done here and bundled into server.js. Authoring still
 // happens on a dev machine with `prisma migrate dev` — that is unchanged.
 //
 // Uses `pg` — the SAME driver the app runs through @prisma/adapter-pg, already

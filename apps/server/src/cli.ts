@@ -1,10 +1,10 @@
-// Compiled entrypoint (`bun build --compile`) for the Docker image.
-// Subcommands share one binary so the image ships a single ~95MB executable
-// instead of one per task.
+// Bundled entrypoint (`bun build --target=bun`) for the Docker image.
+// Subcommands share one ~7MB JS bundle, run on the image's base bun (no second
+// runtime embedded, no node_modules), so the image ships bun once.
 //
-//   op-server          -> start the API + terminal ws (default)
-//   op-server migrate  -> apply pending DB migrations, then exit
-//   op-server seed     -> create the first admin user, then exit
+//   bun server.js          -> start the API + terminal ws (default)
+//   bun server.js migrate  -> apply pending DB migrations, then exit
+//   bun server.js seed     -> create the first admin user, then exit
 //
 // Local dev still runs `src/index.ts` directly via `bun run dev`.
 export {}; // top-level await requires this file to be a module
@@ -24,7 +24,7 @@ if (cmd === "migrate") {
   await import("@/index");
 } else {
   console.error(
-    `unknown command: ${cmd}\nusage: op-server [serve|migrate|seed]`,
+    `unknown command: ${cmd}\nusage: server.js [serve|migrate|seed]`,
   );
   process.exit(1);
 }

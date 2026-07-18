@@ -5,16 +5,16 @@ set -e
 
 case "${1:-}" in
   server)
-    exec /app/op-server serve
+    exec bun /app/server.js serve
     ;;
   seed)
-    exec /app/op-server seed
+    exec bun /app/server.js seed
     ;;
   migrate)
-    # Applies pending migrations via the compiled binary (no prisma CLI in the
-    # image). cd so the runner finds ./prisma/migrations.
+    # Applies pending migrations via the bundled JS (no prisma CLI in the image).
+    # cd so the runner finds ./prisma/migrations.
     cd /app/server
-    exec /app/op-server migrate
+    exec bun /app/server.js migrate
     ;;
   web)
     # Next standalone server. HOSTNAME=0.0.0.0 so it's reachable outside the

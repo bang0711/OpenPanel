@@ -14,7 +14,7 @@ export default defineConfig({
     // var is missing, which breaks `prisma generate` in CI and the Docker build
     // (generate reads the schema and never connects). Commands that DO need a
     // connection (migrate dev) still fail clearly when it's empty. Runtime
-    // migrations run through op-server, not this config.
+    // migrations run through the server bundle, not this config.
     url: process.env.DATABASE_URL ?? "",
   },
 });

@@ -1,5 +1,5 @@
 // Seed the first admin user for local dev: bun run seed
-// In Docker this same logic ships inside the compiled binary (`op-server seed`),
+// In Docker this same logic ships inside the JS bundle (`bun server.js seed`),
 // so the image needs no scripts, no node_modules, and no dotenv.
 // Override via env: SEED_EMAIL, SEED_PASSWORD, SEED_NAME.
 import "dotenv/config";

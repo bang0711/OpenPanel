@@ -28,14 +28,13 @@ COPY . .
 # DATABASE_URL directly (not env()), so a missing var no longer throws here.
 RUN cd apps/server && bunx prisma generate
 
-# Compile the API to one binary, reusing the app's own build script so the
-# flags live in one place (--external cpu-features etc.). Bun reports 2-3x
-# lower memory than running from source, and the runtime needs no node_modules
-# or source tree.
-#
-# The extra --target overrides the script's host default: it must match the
-# Alpine runtime below, since a glibc build would not run there.
-RUN cd apps/server && bun run build --target=bun-linux-x64-musl
+# Bundle the API to one ~7MB JS file (bun build --target=bun), reusing the app's
+# own build script so the flags live in one place (--external cpu-features etc.).
+# It runs on the base bun already present below for the web role — so the image
+# ships bun ONCE, not a second copy embedded in a --compile binary. Measured:
+# 371MB -> 243MB, with no RAM cost (bundled-on-bun ~= the old binary at runtime).
+# The bundle is platform-agnostic JS, so no --target override is needed here.
+RUN cd apps/server && bun run build
 
 # Next.js standalone: traces only the modules the server actually needs.
 RUN cd apps/web && bun run build
@@ -47,14 +46,15 @@ ENV NODE_ENV=production
 # Next's standalone server binds 127.0.0.1 by default, unreachable from outside.
 ENV HOSTNAME=0.0.0.0
 
-# The `migrate` role runs `op-server migrate`, a SQL applier compiled into the
-# binary — no prisma CLI, no schema-engine, no node_modules in the image (that
-# was ~235MB). It needs only the migration .sql files, which it reads from here;
+# The `migrate` role runs `server.js migrate`, a SQL applier bundled into the JS
+# — no prisma CLI, no schema-engine, no node_modules in the image (that was
+# ~235MB). It needs only the migration .sql files, which it reads from here;
 # `prisma migrate dev` on a dev machine still authors them. See src/db/migrate.ts.
 COPY apps/server/prisma/migrations /app/server/prisma/migrations
 
-# server + seed roles: the compiled binary is the whole payload.
-COPY --from=build /src/apps/server/dist/op-server /app/op-server
+# server / migrate / seed roles: the bundled JS is the whole payload; the base
+# image's bun runs it (no embedded runtime, no node_modules).
+COPY --from=build /src/apps/server/dist/server.js /app/server.js
 
 # web role: standalone output + assets it does not trace (static/public).
 COPY --from=build /src/apps/web/.next/standalone /app/web/
@@ -64,7 +64,7 @@ COPY --from=build /src/apps/web/public /app/web/apps/web/public
 COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/install.sh /app/install.sh
 COPY docker/docker-compose.yml /app/install/docker-compose.yml
-RUN chmod +x /app/entrypoint.sh /app/install.sh /app/op-server
+RUN chmod +x /app/entrypoint.sh /app/install.sh
 
 EXPOSE 3000 3001
 ENTRYPOINT ["/app/entrypoint.sh"]

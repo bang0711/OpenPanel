@@ -24,7 +24,7 @@ const eslintConfig = defineConfig([
       "simple-import-sort/exports": "error",
     },
   },
-  globalIgnores(["src/generated/**", "node_modules/**"]),
+  globalIgnores(["src/generated/**", "node_modules/**", "dist/**"]),
 ]);
 
 export default eslintConfig;
