@@ -45,7 +45,14 @@ bun run seed                  # create admin@openpanel.local / admin12345
 bun run dev                   # web :3000 + API/ws :3001
 ```
 
-Open http://localhost:3000, sign in, and add a server. API reference: http://localhost:3001/api/docs
+Open http://localhost:3000, sign in, and add a server. API reference (dev):
+http://localhost:3001/api/docs.
+
+**The docs are not exposed in production.** Two layers: the Scalar UI is only
+mounted when `NODE_ENV !== production` or `ENABLE_API_DOCS=true`, so on a normal
+deploy `/api/docs` returns 404 on the frontend proxy *and* the backend port; and
+`proxy.ts` never forwards `/api/docs` from the web origin regardless, so even
+turning the flag on for a private box keeps the reference off the public site.
 
 ### Environment
 
@@ -74,8 +81,8 @@ Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toStri
 | --- | --- |
 | `bun run dev` | web + API/ws (both) |
 | `bun run dev:web` / `dev:server` | one process only |
-| `bun run build` | both apps: compiles the API to a single binary (`apps/server/dist/op-server`, ~100MB, no `node_modules` needed to run) then builds the web app |
-| `bun run start` | production web + API/ws — the API runs the **compiled binary**, so `build` must come first (Bun reports 2–3× lower memory than running from source) |
+| `bun run build` | both apps: bundles the API to a single ~7MB JS file (`apps/server/dist/server.js`, no `node_modules` needed to run) then builds the web app |
+| `bun run start` | production web + API/ws — the API runs the **bundled JS on bun**, so `build` must come first |
 | `bun run seed` | seed the admin user |
 | `bun run db:migrate` / `db:generate` | Prisma migrate / generate (in `apps/server`) |
 | `bun run test` | **the gate**: typecheck → lint → `bun test` (all workspaces). CI runs this; `release` refuses to publish without it |
@@ -117,16 +124,18 @@ One image, four roles (compose runs the same image three times):
 
 | Role | What it does |
 | --- | --- |
-| `server` | API + terminal ws (:3001). A single `bun build --compile` binary — no `node_modules`, no source tree; Bun reports 2–3× lower memory than running from source |
+| `server` | API + terminal ws (:3001). A single ~7MB `bun build` JS bundle run on the base bun — no `node_modules`, no source tree, no second runtime embedded |
 | `web` | Next.js `output: "standalone"` (:3000) — only the traced modules |
-| `migrate` | applies pending migrations, then exits. `server` waits on `service_completed_successfully`, so the API never races an unmigrated schema. Uses `op-server migrate`, a SQL applier compiled into the binary — **no prisma CLI in the image** |
+| `migrate` | applies pending migrations, then exits. `server` waits on `service_completed_successfully`, so the API never races an unmigrated schema. Uses `bun server.js migrate`, a SQL applier bundled into the JS — **no prisma CLI in the image** |
 | `seed` | Creates the first admin user, then exits |
 
-The image is **371MB** (measured): 98MB compiled API binary, 88MB Bun runtime,
-64MB Next standalone, ~100KB migration SQL, on a 9MB Alpine base. No
-`node_modules`.
+The image is **243MB** (measured): 88MB Bun runtime (shared by the server bundle
+and the web role), 64MB Next standalone, 7MB API bundle, ~100KB migration SQL, on
+a 9MB Alpine base. No `node_modules`. Bundling the API onto the shared bun
+instead of a `--compile` binary — which embeds its own copy of bun — cut the
+image from 371MB with no measured RAM cost.
 
-Migrations: `op-server migrate` reads the committed `prisma/migrations/*.sql`
+Migrations: `bun server.js migrate` reads the committed `prisma/migrations/*.sql`
 and applies the pending ones through the same `pg` driver the app uses (so one
 `DATABASE_URL` — SSL and all — behaves identically for both), tracking them in
 Prisma's own `_prisma_migrations` table with the same checksums — so an existing
@@ -233,6 +242,15 @@ compose interpolates from there. Migrations need no extra step: `up -d` recreate
 `migrate`, and `server`'s `service_completed_successfully` dependency means a
 failed migration fails the deploy instead of starting the API against an
 unmigrated schema.
+
+After `up -d`, the script **waits for the server's healthcheck** (`GET
+/api/health` → `SELECT 1`) to report healthy before it reports success — a
+container that starts but crash-loops or can't reach its DB fails the deploy
+with logs, instead of a green deploy of a down app. It also **reclaims disk
+before pulling** (stopped containers, dangling layers, build cache, and old
+`open-panel:<ver>` tags) so a small-disk host doesn't fail the pull, then again
+after the swap to drop the now-replaced image. CI additionally builds the image
+on every PR and scans it with **Trivy** (fails on a fixable HIGH/CRITICAL CVE).
 
 Because config is injected at `up`, a bare `docker compose up` on the box (after
 a manual `down`) has nothing to interpolate and will fail — redeploy through CI

@@ -12,11 +12,14 @@ and a tab in `components/servers/server-nav.tsx`).
       same-origin proxy (`proxy.ts`) forwards `/api/*` to the backend, auth + Prisma backend-only
 - [x] Docker — one image, four roles (`server`/`web`/`migrate`/`seed`); `open-panel install` writes
       the compose file + generated secrets; no config baked into the image
-- [x] CI/CD — `bun run test` gate + image build on every PR; a `v*` tag gates → publishes to Docker
-      Hub → deploys over SSH (`docker/deploy.sh`, host key pinned from `DEPLOY_KNOWN_HOSTS`)
+- [x] CI/CD — `bun run test` gate + image build & Trivy scan on every PR; a `v*` tag gates →
+      publishes to Docker Hub → deploys over SSH (`docker/deploy.sh`, host key pinned from
+      `DEPLOY_KNOWN_HOSTS`), reclaiming disk before pull and waiting on the `/api/health`
+      container healthcheck before reporting success (a crash-looping release fails the deploy)
 - [x] Auth — multi-user, roles (Better Auth admin plugin), `proxy.ts` gate + per-route check
-- [x] Server registry — SSH creds encrypted at rest, TOFU host-key pinning, password/key upload,
-      distro detection (`/etc/os-release` → allowlisted `osId`) with per-distro brand icons
+- [x] Server registry — add / edit / delete, SSH creds encrypted at rest, TOFU host-key pinning
+      (re-pinned when host/port changes), password/key upload, distro detection
+      (`/etc/os-release` → allowlisted `osId`) with per-distro brand icons
 - [x] System dashboard — CPU / RAM / disk / load / uptime (5s poll)
 - [x] Services & processes — systemctl start/stop/restart/enable/disable, journal logs, ps/kill
 - [x] File manager (SFTP) — browse, edit, upload, download, chmod, rename, mkdir, delete
@@ -25,7 +28,9 @@ and a tab in `components/servers/server-nav.tsx`).
 - [x] App catalog — curated one-click installs (nginx, docker, postgres, redis, node, …)
 - [x] Dark mode + theme toggle
 - [x] OpenAPI / Scalar docs at `/api/docs`
-- [x] Perf — SSH connection pool, memoized rows, build-time bundled catalog metadata
+- [x] Perf — SSH connection pool, memoized rows, build-time bundled catalog metadata;
+      lazy-loaded charts + visibility-gated polling; scheduler sweeps run bounded-concurrent
+      with per-host failure backoff and batched writes (a down host can't stall the sweep)
 - [x] Cron editor — list/add/remove crontab jobs (write via `crontab -` stdin, no injection)
 - [x] Firewall (ufw) — status, enable/disable, allow/deny port, delete rule
 
@@ -100,8 +105,9 @@ and a tab in `components/servers/server-nav.tsx`).
   (`docker/deploy.sh`'s own logic is verified against a stubbed `docker`). It has no `bun test`
   coverage either: the unit is a shell script plus workflow YAML, neither reachable from the runner.
   First real tag is the proof; deploy a throwaway version before a real one.
-- The image itself is verified: it builds (371MB), and against a throwaway Postgres the `migrate`
-  (binary-embedded SQL applier, Prisma-checksum-compatible), `seed`, and `server` roles all run
+- The image itself is verified: it builds (243MB — API bundled onto the shared bun, not a
+  --compile binary), and against a throwaway Postgres the `migrate`
+  (bundle-embedded SQL applier, Prisma-checksum-compatible), `seed`, and `server` roles all run
   correctly. Still unverified: a full `compose up` of the whole stack, browser sign-in, the terminal
   websocket, and registering a real host (`detectOs` / fingerprint pin) — those need the web + a
   live sshd.
