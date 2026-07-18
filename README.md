@@ -104,9 +104,9 @@ Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toStri
 file and secrets for you:
 
 ```bash
-docker run --rm -v "$PWD:/output" open-panel:1.1.0 install
+docker run --rm -v "$PWD:/output" open-panel:1.1.1 install
 # set DATABASE_URL in the generated .env (bring your own Postgres) — or pass it:
-#   docker run --rm -e DATABASE_URL=postgresql://… -v "$PWD:/output" open-panel:1.1.0 install
+#   docker run --rm -e DATABASE_URL=postgresql://… -v "$PWD:/output" open-panel:1.1.1 install
 docker compose up -d
 docker compose run --rm server seed     # first admin user
 ```
@@ -157,7 +157,7 @@ a database the runner manages — the runner is the deploy path.
 Building it locally (CI publishes — see below):
 
 ```bash
-docker build -t open-panel:1.1.0 .
+docker build -t open-panel:1.1.1 .
 ```
 
 **Run the whole container stack locally** to verify the image before releasing.
@@ -165,7 +165,7 @@ Create a gitignored `docker/.env` with `IMAGE`, your `DATABASE_URL`, and the two
 secrets (`BETTER_AUTH_SECRET`, `OPENPANEL_ENC_KEY`), then:
 
 ```bash
-docker build -t open-panel:1.1.0 .   # build first — the stack won't pull it
+docker build -t open-panel:1.1.1 .   # build first — the stack won't pull it
 cd docker && docker compose up        # reads docker/.env
 # open http://localhost:3000, then: docker compose run --rm server seed
 ```
