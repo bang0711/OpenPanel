@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import {
   DETECT_CMD,
@@ -55,7 +55,7 @@ export class PackagesService {
   async refresh(server: SshServer): Promise<PkgCommandResult> {
     const manager = await this.detect(server);
     if (!manager) throw new Error("No supported package manager found");
-    const { stdout, stderr, code } = await runCommand(
+    const { stdout, stderr, code } = await runPrivileged(
       server,
       MANAGER_COMMANDS[manager].refresh,
     );
@@ -70,7 +70,7 @@ export class PackagesService {
     if (!isValidPkgName(name)) throw new Error("Invalid package name");
     const manager = await this.detect(server);
     if (!manager) throw new Error("No supported package manager found");
-    const { stdout, stderr, code } = await runCommand(
+    const { stdout, stderr, code } = await runPrivileged(
       server,
       MANAGER_COMMANDS[manager][action](name),
     );

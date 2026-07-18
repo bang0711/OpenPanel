@@ -1,7 +1,7 @@
 import type { BackupJob } from "@/generated/prisma/client";
 
 import { prisma } from "@/db/prisma";
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runPrivileged, type SshServer } from "@/lib/ssh/client";
 import { normalizeRemotePath } from "@/server/modules/files/files.constant";
 
 import { isValidSource } from "./backups.constant";
@@ -27,7 +27,7 @@ function buildBackupCommand(job: {
 
   const ts = "$(date +%Y%m%d-%H%M%S)";
   if (job.kind === "db") {
-    return `mkdir -p '${target}' && sudo mysqldump ${job.source} > '${target}/${job.source}-'${ts}'.sql'`;
+    return `mkdir -p '${target}' && mysqldump ${job.source} > '${target}/${job.source}-'${ts}'.sql'`;
   }
   const rel = job.source.replace(/^\/+/, "");
   return `mkdir -p '${target}' && tar czf '${target}/backup-'${ts}'.tar.gz' -C / '${rel}'`;
@@ -75,7 +75,7 @@ export class BackupService {
     job: BackupJob,
   ): Promise<{ ok: boolean; output: string }> {
     const cmd = buildBackupCommand(job);
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     const ok = code === 0;
     await prisma.backupJob.update({
       where: { id: job.id },

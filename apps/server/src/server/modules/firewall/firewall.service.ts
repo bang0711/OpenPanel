@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import {
   FW_ACTIONS,
@@ -24,7 +24,7 @@ export class FirewallService {
     if (detect.stdout.trim() !== "yes") {
       return { installed: false, active: false, rules: [] };
     }
-    const { stdout } = await runCommand(
+    const { stdout } = await runPrivileged(
       server,
       "ufw status numbered 2>/dev/null",
     );
@@ -63,7 +63,7 @@ export class FirewallService {
   }
 
   private async run(server: SshServer, cmd: string) {
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 

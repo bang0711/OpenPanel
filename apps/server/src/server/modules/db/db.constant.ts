@@ -33,13 +33,17 @@ export const ENGINE_COMMANDS: Record<
     grantSql: (username: string, database: string) => string;
   }
 > = {
+  // MySQL runs as root (socket auth) — bare, `runPrivileged` escalates to root.
+  // Postgres keeps `sudo -u postgres` to BECOME the postgres user (peer auth);
+  // that inner user-switch needs root, which `runPrivileged` provides, so from
+  // root `sudo -u postgres` runs password-free.
   mysql: {
     detect: "command -v mysql",
-    listDatabases: `sudo mysql -N -e "SHOW DATABASES"`,
+    listDatabases: `mysql -N -e "SHOW DATABASES"`,
     // Backticks escaped so the shell treats them literally (mysql identifier quoting).
-    createDatabase: (n) => `sudo mysql -e "CREATE DATABASE \\\`${n}\\\`"`,
-    dropDatabase: (n) => `sudo mysql -e "DROP DATABASE \\\`${n}\\\`"`,
-    sqlShell: "sudo mysql",
+    createDatabase: (n) => `mysql -e "CREATE DATABASE \\\`${n}\\\`"`,
+    dropDatabase: (n) => `mysql -e "DROP DATABASE \\\`${n}\\\`"`,
+    sqlShell: "mysql",
     createUserSql: (u, p) =>
       `CREATE USER '${u}'@'localhost' IDENTIFIED BY '${p}';`,
     grantSql: (u, db) =>

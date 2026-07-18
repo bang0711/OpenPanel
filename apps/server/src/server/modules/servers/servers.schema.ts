@@ -10,6 +10,9 @@ export const createServerBody = t.Object({
   authType: t.Union(AUTH_TYPES.map((a) => t.Literal(a))),
   secret: t.String({ minLength: 1 }),
   passphrase: t.Optional(t.String()),
+  // Optional sudo password. Omit to reuse the login password (password auth) or
+  // rely on root / passwordless sudo.
+  sudoPassword: t.Optional(t.String()),
   tags: t.Optional(t.Array(t.String({ maxLength: 32 }), { maxItems: 20 })),
 });
 
@@ -25,6 +28,7 @@ export const updateServerBody = t.Object({
   authType: t.Optional(t.Union(AUTH_TYPES.map((a) => t.Literal(a)))),
   secret: t.Optional(t.String({ minLength: 1 })),
   passphrase: t.Optional(t.String()),
+  sudoPassword: t.Optional(t.String()),
   tags: t.Optional(t.Array(t.String({ maxLength: 32 }), { maxItems: 20 })),
 });
 

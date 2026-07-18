@@ -16,8 +16,9 @@ export const BULK_ACTIONS = {
     cmd: "df -h --output=source,pcent,target -x tmpfs -x devtmpfs 2>/dev/null",
   },
   "update-packages": {
+    // Bare — write/admin actions run through runPrivileged, which escalates.
     level: "write",
-    cmd: "(command -v apt-get >/dev/null && sudo apt-get update) || (command -v dnf >/dev/null && sudo dnf check-update) || true",
+    cmd: "(command -v apt-get >/dev/null && apt-get update) || (command -v dnf >/dev/null && dnf check-update) || true",
   },
   // service-restart has no fixed command: it is built per-request from a
   // validated unit name (see bulk.service.ts).

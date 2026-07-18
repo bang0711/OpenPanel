@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import { isValidIp, isValidJail } from "./fail2ban.constant";
 
@@ -18,7 +18,7 @@ export class Fail2banService {
       return { installed: false, jails: [] };
     }
 
-    const { stdout } = await runCommand(
+    const { stdout } = await runPrivileged(
       server,
       "fail2ban-client status 2>/dev/null",
     );
@@ -27,7 +27,7 @@ export class Fail2banService {
     const jails: F2bJail[] = [];
     for (const name of names) {
       if (!isValidJail(name)) continue;
-      const res = await runCommand(
+      const res = await runPrivileged(
         server,
         `fail2ban-client status ${name} 2>/dev/null`,
       );
@@ -39,7 +39,7 @@ export class Fail2banService {
   async unban(server: SshServer, jail: string, ip: string) {
     if (!isValidJail(jail)) throw new Error("Invalid jail");
     if (!isValidIp(ip)) throw new Error("Invalid IP");
-    const { stdout, stderr, code } = await runCommand(
+    const { stdout, stderr, code } = await runPrivileged(
       server,
       `fail2ban-client set ${jail} unbanip ${ip}`,
     );

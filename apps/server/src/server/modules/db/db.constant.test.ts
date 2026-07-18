@@ -143,9 +143,11 @@ describe("ENGINE_COMMANDS", () => {
   it("builds mysql commands with escaped identifier backticks", () => {
     const m = ENGINE_COMMANDS.mysql;
     expect(m.detect).toBe("command -v mysql");
-    expect(m.sqlShell).toBe("sudo mysql");
-    expect(m.createDatabase("wp")).toBe('sudo mysql -e "CREATE DATABASE \\`wp\\`"');
-    expect(m.dropDatabase("wp")).toBe('sudo mysql -e "DROP DATABASE \\`wp\\`"');
+    // No hardcoded sudo — runPrivileged escalates to root. Postgres keeps
+    // `sudo -u postgres` because that's a user-switch (peer auth), not root.
+    expect(m.sqlShell).toBe("mysql");
+    expect(m.createDatabase("wp")).toBe('mysql -e "CREATE DATABASE \\`wp\\`"');
+    expect(m.dropDatabase("wp")).toBe('mysql -e "DROP DATABASE \\`wp\\`"');
     expect(m.createUserSql("bob", "Str0ng!Pass")).toBe(
       "CREATE USER 'bob'@'localhost' IDENTIFIED BY 'Str0ng!Pass';",
     );

@@ -1,4 +1,4 @@
-import { runCommand } from "@/lib/ssh/client";
+import { runCommand, runPrivileged } from "@/lib/ssh/client";
 import { type AuthUser, authorize } from "@/server/access";
 
 import { BULK_ACTIONS, isValidUnit } from "./bulk.constant";
@@ -31,10 +31,12 @@ export class BulkService {
     let cmd: string;
     if (action === "service-restart") {
       if (!unit || !isValidUnit(unit)) throw new Error("Invalid or missing unit");
-      cmd = `sudo systemctl restart ${unit}`;
+      cmd = `systemctl restart ${unit}`;
     } else {
       cmd = BULK_ACTIONS[action].cmd;
     }
+    // Read actions (uptime/disk) run unprivileged; write/admin ones escalate.
+    const exec = level === "read" ? runCommand : runPrivileged;
 
     const results: BulkResult[] = [];
     for (const serverId of serverIds) {
@@ -44,7 +46,7 @@ export class BulkService {
         continue;
       }
       try {
-        const { stdout, stderr, code } = await runCommand(gate.server, cmd);
+        const { stdout, stderr, code } = await exec(gate.server, cmd);
         results.push({
           serverId,
           name: gate.server.name,

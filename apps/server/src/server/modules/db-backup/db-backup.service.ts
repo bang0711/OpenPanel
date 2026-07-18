@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 import { normalizeRemotePath } from "@/server/modules/files/files.constant";
 
 import {
@@ -27,7 +27,9 @@ export class DbBackupService {
 
   async list(server: SshServer, dir: string): Promise<DbBackupList> {
     const safeDir = normalizeRemotePath(dir);
-    const { stdout } = await runCommand(
+    // Dumps are written as root, so the dir may be root-owned — escalate the
+    // listing so it's readable however the user connected.
+    const { stdout } = await runPrivileged(
       server,
       `ls -1t ${safeDir}/*.sql 2>/dev/null`,
     );
@@ -53,13 +55,13 @@ export class DbBackupService {
     // filename is unique without interpolating anything untrusted.
     const dumper =
       engine === "mysql"
-        ? `sudo mysqldump ${database}`
+        ? `mysqldump ${database}`
         : `sudo -u postgres pg_dump ${database}`;
     const cmd =
       `mkdir -p ${safeDir} && ${dumper} > ` +
       `'${safeDir}/${database}-'$(date +%Y%m%d-%H%M%S)'.sql'`;
 
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 }

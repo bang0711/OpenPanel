@@ -1,4 +1,8 @@
-import { runCommand, runCommandInput, type SshServer } from "@/lib/ssh/client";
+import {
+  runCommand,
+  runPrivilegedInput,
+  type SshServer,
+} from "@/lib/ssh/client";
 
 import {
   isValidDb,
@@ -43,16 +47,18 @@ export class QueryService {
     if (sql.includes("\0")) throw new Error("SQL contains a NUL byte");
     if (sql.length > 20000) throw new Error("SQL too long");
 
+    // MySQL runs as root (bare — runPrivileged escalates). Postgres keeps
+    // `sudo -u postgres` for peer auth (the user-switch, run from root).
     const cmd =
       engine === "mysql"
         ? db
-          ? `sudo mysql --batch --raw ${db}`
-          : "sudo mysql --batch --raw"
+          ? `mysql --batch --raw ${db}`
+          : "mysql --batch --raw"
         : db
           ? `sudo -u postgres psql -A -F '\\t' -d ${db}`
           : "sudo -u postgres psql -A -F '\\t'";
 
-    const { stdout, stderr, code, truncated } = await runCommandInput(
+    const { stdout, stderr, code, truncated } = await runPrivilegedInput(
       server,
       cmd,
       sql,

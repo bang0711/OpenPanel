@@ -10,15 +10,15 @@ export type InstallSpec = {
   install: string; // shell script to install
 };
 
-// Cross-manager package install for the common case. Installs need root, so
-// each manager runs under `sudo` (the SSH user needs passwordless sudo — the
-// same assumption db/bulk/backups/packages make). apt's DEBIAN_FRONTEND goes
-// through `sudo env` because a default sudoers env policy rejects `sudo VAR=val`.
+// Cross-manager package install for the common case. Installs need root; the
+// escalation is added centrally by `runPrivileged` (which adapts to root /
+// passwordless sudo / sudo password), so these commands are bare and run inside
+// `sh -c` as root — `DEBIAN_FRONTEND` just works, no `sudo env`.
 function pkg(names: { apt: string; dnf: string; apk: string }): string {
   return (
-    `if command -v apt-get >/dev/null 2>&1; then sudo apt-get update && sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y ${names.apt}; ` +
-    `elif command -v dnf >/dev/null 2>&1; then sudo dnf install -y ${names.dnf}; ` +
-    `elif command -v apk >/dev/null 2>&1; then sudo apk add ${names.apk}; ` +
+    `if command -v apt-get >/dev/null 2>&1; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ${names.apt}; ` +
+    `elif command -v dnf >/dev/null 2>&1; then dnf install -y ${names.dnf}; ` +
+    `elif command -v apk >/dev/null 2>&1; then apk add ${names.apk}; ` +
     `else echo "No supported package manager"; exit 1; fi`
   );
 }

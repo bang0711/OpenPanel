@@ -1,10 +1,11 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import { type OpenPort, parsePortRow } from "./ports.constant";
 
 export class PortsService {
   async list(server: SshServer): Promise<OpenPort[]> {
-    const { stdout } = await runCommand(
+    // Escalated so ss/netstat populate the process/PID columns (root-only).
+    const { stdout } = await runPrivileged(
       server,
       "ss -tulpnH 2>/dev/null || netstat -tulpn 2>/dev/null",
     );

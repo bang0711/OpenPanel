@@ -1,6 +1,7 @@
 import {
   runCommand,
-  runCommandInput,
+  runPrivileged,
+  runPrivilegedInput,
   type SshServer,
 } from "@/lib/ssh/client";
 
@@ -27,7 +28,7 @@ export class DbService {
 
   async listDatabases(server: SshServer, engine: DbEngine): Promise<string[]> {
     this.assertEngine(engine);
-    const { stdout } = await runCommand(
+    const { stdout } = await runPrivileged(
       server,
       ENGINE_COMMANDS[engine].listDatabases,
     );
@@ -99,7 +100,7 @@ export class DbService {
     server: SshServer,
     cmd: string,
   ): Promise<DbCommandResult> {
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 
@@ -108,7 +109,11 @@ export class DbService {
     cmd: string,
     input: string,
   ): Promise<DbCommandResult> {
-    const { stdout, stderr, code } = await runCommandInput(server, cmd, input);
+    const { stdout, stderr, code } = await runPrivilegedInput(
+      server,
+      cmd,
+      input,
+    );
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 }

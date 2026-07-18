@@ -1,4 +1,4 @@
-import { runCommand } from "@/lib/ssh/client";
+import { runPrivileged } from "@/lib/ssh/client";
 import { normalizeRemotePath } from "@/server/modules/files/files.constant";
 import { prisma } from "@/db/prisma";
 
@@ -19,7 +19,7 @@ function buildCommand(job: Job): string {
   const target = normalizeRemotePath(job.target); // absolute, traversal-checked
   if (job.kind === "db") {
     if (!DB_IDENT_RE.test(job.source)) throw new Error("Invalid database name");
-    return `mkdir -p '${target}' && sudo mysqldump ${job.source} > '${target}/${job.source}-'$(date +%Y%m%d-%H%M%S)'.sql'`;
+    return `mkdir -p '${target}' && mysqldump ${job.source} > '${target}/${job.source}-'$(date +%Y%m%d-%H%M%S)'.sql'`;
   }
   // files
   const source = normalizeRemotePath(job.source);
@@ -36,7 +36,7 @@ export async function runBackups(): Promise<void> {
     if (!due) continue;
     try {
       const cmd = buildCommand(job);
-      const { code, stdout, stderr } = await runCommand(job.server, cmd);
+      const { code, stdout, stderr } = await runPrivileged(job.server, cmd);
       await prisma.backupJob.update({
         where: { id: job.id },
         data: {

@@ -11,6 +11,8 @@ model Server {
   authType        String // 'password' | 'key'
   secretEnc       String // AES-256-GCM blob (password or private key)
   passphraseEnc   String? // optional, for encrypted keys
+  sudoMode        String? // 'none' | 'nopasswd' | 'password' — how the user reaches root (detected on test)
+  sudoPasswordEnc String? // AES-256-GCM blob, optional sudo-password override (else reuse the login password)
   hostFingerprint String? // pinned SHA256 host key (TOFU)
   osId            String? // /etc/os-release ID, e.g. 'debian' (drives the distro icon)
   osName          String? // /etc/os-release PRETTY_NAME, e.g. 'Debian GNU/Linux 12 (bookworm)'

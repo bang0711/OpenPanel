@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import { LOG_SOURCES, unitCmd, UNIT_RE } from "./logs.constant";
 
@@ -34,7 +34,8 @@ export class LogsService {
       cmd = src.cmd(n);
     }
 
-    const { stdout, stderr } = await runCommand(server, cmd);
+    // Escalated: /var/log/auth.log, the journal, etc. are commonly root-only.
+    const { stdout, stderr } = await runPrivileged(server, cmd);
     return { content: stdout || stderr };
   }
 }

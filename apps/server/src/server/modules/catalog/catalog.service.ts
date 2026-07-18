@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import { CATALOG_APPS, findSpec, INSTALL_SPECS } from "./catalog.constant";
 
@@ -24,7 +24,7 @@ export class CatalogService {
   ): Promise<{ ok: boolean; output: string }> {
     const spec = findSpec(id);
     if (!spec) throw new Error("Unknown app");
-    const { stdout, stderr, code } = await runCommand(server, spec.install);
+    const { stdout, stderr, code } = await runPrivileged(server, spec.install);
     const out = (stderr || stdout).trim();
     return { ok: code === 0, output: out.length > 6000 ? out.slice(-6000) : out };
   }

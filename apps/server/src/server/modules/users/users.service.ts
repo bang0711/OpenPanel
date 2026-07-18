@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import { isValidUsername, SHELLS } from "./users.constant";
 
@@ -42,7 +42,7 @@ export class UsersService {
   }
 
   private async run(server: SshServer, cmd: string) {
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     if (code !== 0) throw new Error((stderr || stdout).trim() || "Command failed");
     return { ok: true, output: (stderr || stdout).trim() };
   }

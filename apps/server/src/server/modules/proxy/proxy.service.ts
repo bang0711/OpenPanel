@@ -1,5 +1,9 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
-import { sftpReadFile, sftpWriteFile } from "@/lib/ssh/sftp";
+import {
+  runCommand,
+  runPrivileged,
+  runPrivilegedInput,
+  type SshServer,
+} from "@/lib/ssh/client";
 
 import { normalizeRemotePath } from "../files/files.constant";
 import {
@@ -31,11 +35,11 @@ export class ProxyService {
     }
     // Fixed dir path (no user input) — grep our marker to find managed sites.
     const [marked, enabled] = await Promise.all([
-      runCommand(
+      runPrivileged(
         server,
         `grep -l -F '${MARKER}' ${SITES_AVAILABLE}/* 2>/dev/null`,
       ),
-      runCommand(server, `ls -1 ${SITES_ENABLED} 2>/dev/null`),
+      runPrivileged(server, `ls -1 ${SITES_ENABLED} 2>/dev/null`),
     ]);
     const enabledSet = new Set(this.lines(enabled.stdout));
     const names = this.lines(marked.stdout).map((p) => p.slice(p.lastIndexOf("/") + 1));
@@ -64,7 +68,11 @@ export class ProxyService {
 
     const config = this.template(serverName, upstreamHost, upstreamPort);
     const path = normalizeRemotePath(`${SITES_AVAILABLE}/${name}`);
-    await sftpWriteFile(server, path, config);
+    // Escalated tee (content over stdin) instead of an SFTP write to /etc/nginx.
+    const w = await runPrivilegedInput(server, `tee '${path}' >/dev/null`, config);
+    if (w.code !== 0) {
+      return { ok: false, output: (w.stderr || w.stdout).trim() };
+    }
     return this.run(
       server,
       `ln -sf ${SITES_AVAILABLE}/${name} ${SITES_ENABLED}/${name} && nginx -t && systemctl reload nginx`,
@@ -101,7 +109,7 @@ server {
     const path = normalizeRemotePath(`${SITES_AVAILABLE}/${name}`);
     let content = "";
     try {
-      content = (await sftpReadFile(server, path)).toString("utf8");
+      content = (await runPrivileged(server, `cat '${path}'`)).stdout;
     } catch {
       /* unreadable — surface name only */
     }
@@ -118,7 +126,7 @@ server {
   }
 
   private async run(server: SshServer, cmd: string) {
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 }

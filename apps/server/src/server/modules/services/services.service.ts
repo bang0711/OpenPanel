@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import {
   isValidUnit,
@@ -51,7 +51,7 @@ export class ServicesService {
   ): Promise<{ ok: boolean; output: string }> {
     if (!isValidUnit(name)) throw new Error("Invalid service name");
     if (!SERVICE_ACTIONS.includes(action)) throw new Error("Invalid action");
-    const { stdout, stderr, code } = await runCommand(
+    const { stdout, stderr, code } = await runPrivileged(
       server,
       `systemctl ${action} ${name}`,
     );
@@ -61,7 +61,9 @@ export class ServicesService {
   async logs(server: SshServer, name: string, lines = 200): Promise<string> {
     if (!isValidUnit(name)) throw new Error("Invalid service name");
     const n = Math.min(Math.max(Math.trunc(lines), 1), 1000);
-    const { stdout } = await runCommand(
+    // Escalated so system-unit journals (often root/adm-only) are readable
+    // however the user connected.
+    const { stdout } = await runPrivileged(
       server,
       `journalctl -u ${name} -n ${n} --no-pager 2>&1`,
     );
@@ -101,7 +103,7 @@ export class ServicesService {
   ): Promise<{ ok: boolean; output: string }> {
     if (!Number.isInteger(pid) || pid <= 1) throw new Error("Invalid pid");
     if (!KILL_SIGNALS.includes(signal)) throw new Error("Invalid signal");
-    const { stdout, stderr, code } = await runCommand(
+    const { stdout, stderr, code } = await runPrivileged(
       server,
       `kill -${signal} ${pid}`,
     );

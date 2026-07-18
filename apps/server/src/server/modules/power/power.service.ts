@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import { REBOOT_CMD, SHUTDOWN_CMD } from "./power.constant";
 
@@ -10,7 +10,7 @@ export class PowerService {
   // dropped/errored connection as success.
   private async issue(server: SshServer, cmd: string): Promise<PowerResult> {
     try {
-      await runCommand(server, cmd);
+      await runPrivileged(server, cmd);
     } catch {
       /* connection dropped as the host powers off — action issued */
     }

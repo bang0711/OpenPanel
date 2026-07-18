@@ -55,15 +55,13 @@ describe("INSTALL_SPECS", () => {
     expect(INSTALL_SPECS.postgresql.install).toContain("dnf install -y postgresql-server");
   });
 
-  // Regression: installs failed with apt lock "Permission denied" for a non-root
-  // SSH user because the commands ran without sudo. Every manager branch must
-  // escalate.
-  it("runs each package manager under sudo (needs root)", () => {
-    const s = INSTALL_SPECS.nginx.install;
-    expect(s).toContain("sudo apt-get update");
-    expect(s).toContain("sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y nginx");
-    expect(s).toContain("sudo dnf install -y nginx");
-    expect(s).toContain("sudo apk add nginx");
+  // Installs must NOT hardcode sudo — `runPrivileged` adds escalation centrally
+  // so it adapts to root / passwordless sudo / sudo password. A hardcoded sudo
+  // here would double-escalate and break the sudo-password path.
+  it("does not hardcode sudo in the install scripts", () => {
+    for (const spec of Object.values(INSTALL_SPECS)) {
+      expect(spec.install).not.toContain("sudo");
+    }
   });
 });
 

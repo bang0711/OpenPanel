@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import { isValidDomain, isValidEmail } from "./ssl.constant";
 
@@ -19,7 +19,7 @@ export class SslService {
     if (detect.stdout.trim() !== "yes") {
       return { installed: false, certs: [] };
     }
-    const { stdout } = await runCommand(
+    const { stdout } = await runPrivileged(
       server,
       "certbot certificates 2>/dev/null",
     );
@@ -40,7 +40,7 @@ export class SslService {
   }
 
   private async run(server: SshServer, cmd: string) {
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 

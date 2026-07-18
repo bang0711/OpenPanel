@@ -1,4 +1,4 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
+import { runCommand, runPrivileged, type SshServer } from "@/lib/ssh/client";
 
 import {
   DOCKER_ACTIONS,
@@ -44,7 +44,7 @@ export class DockerService {
   }
 
   async ps(server: SshServer): Promise<DockerContainer[]> {
-    const { stdout } = await runCommand(
+    const { stdout } = await runPrivileged(
       server,
       "docker ps -a --format '{{.ID}}\\t{{.Names}}\\t{{.Image}}\\t{{.State}}\\t{{.Status}}'",
     );
@@ -65,7 +65,7 @@ export class DockerService {
   }
 
   async images(server: SshServer): Promise<DockerImage[]> {
-    const { stdout } = await runCommand(
+    const { stdout } = await runPrivileged(
       server,
       "docker images --format '{{.ID}}\\t{{.Repository}}\\t{{.Tag}}\\t{{.Size}}'",
     );
@@ -93,7 +93,7 @@ export class DockerService {
     if (!DOCKER_ACTIONS.includes(action)) throw new Error("Invalid action");
     const cmd =
       action === "rm" ? `docker rm -f ${id}` : `docker ${action} ${id}`;
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 
@@ -102,7 +102,7 @@ export class DockerService {
     id: string,
   ): Promise<{ ok: boolean; output: string }> {
     if (!isValidId(id)) throw new Error("Invalid image id");
-    const { stdout, stderr, code } = await runCommand(
+    const { stdout, stderr, code } = await runPrivileged(
       server,
       `docker rmi ${id}`,
     );
@@ -111,7 +111,7 @@ export class DockerService {
 
   async logs(server: SshServer, id: string): Promise<string> {
     if (!isValidId(id)) throw new Error("Invalid container id");
-    const { stdout } = await runCommand(
+    const { stdout } = await runPrivileged(
       server,
       `docker logs --tail 200 ${id} 2>&1`,
     );

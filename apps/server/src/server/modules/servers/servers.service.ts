@@ -1,5 +1,6 @@
 import { encryptSecret } from "@/lib/crypto";
 import { runCommand, type SshServer, testConnection } from "@/lib/ssh/client";
+import { parseSudoMode, SUDO_MODE_PROBE } from "@/lib/ssh/privilege";
 import { prisma } from "@/db/prisma";
 import type { AuthUser } from "@/server/access";
 
@@ -19,6 +20,7 @@ type ServerRow = {
   port: number;
   username: string;
   authType: string;
+  sudoMode: string | null;
   hostFingerprint: string | null;
   osId: string | null;
   osName: string | null;
@@ -37,12 +39,35 @@ export class ServersService {
       port: s.port,
       username: s.username,
       authType: s.authType,
+      // How the user reaches root (detected on test). Not a secret; the sudo
+      // password itself (sudoPasswordEnc) is never returned.
+      sudoMode: s.sudoMode,
       hostFingerprint: s.hostFingerprint,
       osId: s.osId,
       osName: s.osName,
       tags: s.tags,
       createdAt: s.createdAt,
     };
+  }
+
+  /**
+   * Classify how this host's SSH user reaches root (root / passwordless sudo /
+   * sudo password), stored so every privileged command picks the right form.
+   * Best-effort: an unreachable host or an odd shell just leaves sudoMode null,
+   * and escalation falls back to a safe runtime check.
+   */
+  async detectSudoMode(server: SshServer & { id: string }) {
+    try {
+      const { stdout } = await runCommand(server, SUDO_MODE_PROBE);
+      const sudoMode = parseSudoMode(stdout);
+      await prisma.server.update({
+        where: { id: server.id },
+        data: { sudoMode },
+      });
+      return sudoMode;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -83,6 +108,9 @@ export class ServersService {
         authType: body.authType,
         secretEnc: encryptSecret(body.secret),
         passphraseEnc: body.passphrase ? encryptSecret(body.passphrase) : null,
+        sudoPasswordEnc: body.sudoPassword
+          ? encryptSecret(body.sudoPassword)
+          : null,
         tags: body.tags ?? [],
       },
     });
@@ -108,11 +136,19 @@ export class ServersService {
       data.hostFingerprint = null;
       data.osId = null;
       data.osName = null;
+      // Host/port moved — the sudo classification belonged to the old endpoint;
+      // re-probe on the next Test.
+      data.sudoMode = null;
     }
     if (plan.setSecret) data.secretEnc = encryptSecret(body.secret as string);
     if (plan.setPassphrase === "set")
       data.passphraseEnc = encryptSecret(body.passphrase as string);
     else if (plan.setPassphrase === "clear") data.passphraseEnc = null;
+    // Sudo password: absent = keep, empty string = clear, value = set.
+    if (body.sudoPassword !== undefined)
+      data.sudoPasswordEnc = body.sudoPassword
+        ? encryptSecret(body.sudoPassword)
+        : null;
     if (body.tags !== undefined) data.tags = body.tags;
 
     const server = await prisma.server.update({ where: { id }, data });
@@ -147,10 +183,14 @@ export class ServersService {
     // Detect with the fresh pin applied, so this connection is verified
     // against the key we just captured rather than trusting blindly again.
     if (ok) {
-      await this.detectOs({
+      const verified = {
         ...server,
         hostFingerprint: fingerprint || server.hostFingerprint,
-      });
+      };
+      await this.detectOs(verified);
+      // Classify sudo now, so the first privileged action already knows how to
+      // reach root instead of falling back to a runtime probe.
+      await this.detectSudoMode(verified);
     }
     return { ok, fingerprint, pinned: shouldPin };
   }

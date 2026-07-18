@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { collectStream } from "./collect";
 import { ConnectionPool } from "./pool";
+import { escalate, type SudoMode } from "./privilege";
 import { Client, type ClientChannel, type ConnectConfig } from "ssh2";
 
 import { decryptSecret } from "@/lib/crypto";
@@ -15,7 +16,37 @@ export type SshServer = {
   secretEnc: string;
   passphraseEnc?: string | null;
   hostFingerprint?: string | null;
+  // Privilege escalation: how this host's SSH user reaches root, detected at
+  // connection test. sudoPasswordEnc is an explicit override; when absent and
+  // auth is password-based, the login password is reused for sudo.
+  sudoMode?: string | null;
+  sudoPasswordEnc?: string | null;
 };
+
+/** Resolve the sudo password for a "password"-mode host: an explicit override
+ *  if set, else the login password (only when auth is password-based — a private
+ *  key is not a password). Empty string if none is available. */
+function resolveSudoPassword(server: SshServer): string {
+  if (server.sudoPasswordEnc) return decryptSecret(server.sudoPasswordEnc);
+  if (server.authType === "password") return decryptSecret(server.secretEnc);
+  return "";
+}
+
+/**
+ * The host needs a sudo password but we have none — typically a key-auth user
+ * that is neither root nor passwordless-sudo. There is no way to run privileged
+ * commands here, so fail with an actionable message instead of a raw sudo error.
+ */
+class SudoPasswordRequiredError extends Error {
+  constructor() {
+    super(
+      "This server needs a sudo password for privileged actions. Add a sudo " +
+        "password in the server settings, or give the SSH user passwordless " +
+        "sudo (or connect as root).",
+    );
+    this.name = "SudoPasswordRequiredError";
+  }
+}
 
 export type ExecResult = {
   stdout: string;
@@ -192,6 +223,46 @@ export function runCommandInput(
   input: string,
 ): Promise<ExecResult> {
   return withSSH(server, (conn) => execInput(conn, cmd, input));
+}
+
+/**
+ * Run a command that needs root, escalated for however the SSH user reaches it
+ * (root / passwordless sudo / sudo password). Pass a PLAIN command with no
+ * `sudo` of its own — escalation is added here. The sudo password, when needed,
+ * is fed on stdin, never the command line.
+ */
+export function runPrivileged(
+  server: SshServer,
+  cmd: string,
+): Promise<ExecResult> {
+  const { command, needsPassword } = escalate(
+    cmd,
+    (server.sudoMode as SudoMode) ?? "unknown",
+  );
+  if (!needsPassword) return runCommand(server, command);
+  const pw = resolveSudoPassword(server);
+  if (!pw) throw new SudoPasswordRequiredError();
+  return runCommandInput(server, command, pw + "\n");
+}
+
+/**
+ * Privileged variant that also feeds `input` to the command's stdin. In
+ * "password" mode the password line is prepended: `sudo -S` consumes it, the
+ * wrapped command reads the rest.
+ */
+export function runPrivilegedInput(
+  server: SshServer,
+  cmd: string,
+  input: string,
+): Promise<ExecResult> {
+  const { command, needsPassword } = escalate(
+    cmd,
+    (server.sudoMode as SudoMode) ?? "unknown",
+  );
+  if (!needsPassword) return runCommandInput(server, command, input);
+  const pw = resolveSudoPassword(server);
+  if (!pw) throw new SudoPasswordRequiredError();
+  return runCommandInput(server, command, pw + "\n" + input);
 }
 
 /** Connect once to verify reachability + capture the host-key fingerprint (for pinning). */

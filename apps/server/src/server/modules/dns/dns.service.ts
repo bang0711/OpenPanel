@@ -1,5 +1,9 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
-import { sftpReadFile, sftpWriteFile } from "@/lib/ssh/sftp";
+import {
+  runCommand,
+  runPrivileged,
+  runPrivilegedInput,
+  type SshServer,
+} from "@/lib/ssh/client";
 
 import { normalizeRemotePath } from "../files/files.constant";
 import { isAllowedZonePath, isValidZoneName } from "./dns.constant";
@@ -15,7 +19,7 @@ export class DnsService {
     if (detect.stdout.trim() !== "yes") {
       return { installed: false, zones: [] };
     }
-    const out = await runCommand(
+    const out = await runPrivileged(
       server,
       "ls -1 /etc/bind/db.* /etc/bind/zones/* 2>/dev/null; ls -1 /var/named/*.zone 2>/dev/null",
     );
@@ -23,20 +27,26 @@ export class DnsService {
   }
 
   async read(server: SshServer, path: string) {
+    // Escalated cat, not SFTP: zone files are root-owned. `safe` is validated
+    // (allowed dirs + normalize) and can't contain a quote.
     const safe = this.assertPath(path);
-    const buf = await sftpReadFile(server, safe);
-    return { content: buf.toString("utf8") };
+    const { stdout } = await runPrivileged(server, `cat '${safe}'`);
+    return { content: stdout };
   }
 
   async write(server: SshServer, path: string, content: string, zoneName?: string) {
     const safe = this.assertPath(path);
-    await sftpWriteFile(server, safe, content);
+    // Escalated tee (content over stdin) instead of an SFTP write.
+    const w = await runPrivilegedInput(server, `tee '${safe}' >/dev/null`, content);
+    if (w.code !== 0) {
+      return { ok: false, output: (w.stderr || w.stdout).trim() };
+    }
 
     // No zone name to validate against — just write, no check/reload.
     if (!zoneName) return { ok: true, output: "" };
     if (!isValidZoneName(zoneName)) throw new Error("Invalid zone name");
 
-    const check = await runCommand(
+    const check = await runPrivileged(
       server,
       `named-checkzone ${zoneName} ${safe}`,
     );
@@ -44,7 +54,7 @@ export class DnsService {
     // Never reload BIND with a zone that fails validation.
     if (check.code !== 0) return { ok: false, output };
 
-    await runCommand(
+    await runPrivileged(
       server,
       "rndc reload 2>/dev/null || systemctl reload named 2>/dev/null || systemctl reload bind9 2>/dev/null",
     );

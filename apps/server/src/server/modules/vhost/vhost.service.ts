@@ -1,5 +1,9 @@
-import { runCommand, type SshServer } from "@/lib/ssh/client";
-import { sftpReadFile, sftpWriteFile } from "@/lib/ssh/sftp";
+import {
+  runCommand,
+  runPrivileged,
+  runPrivilegedInput,
+  type SshServer,
+} from "@/lib/ssh/client";
 
 import { normalizeRemotePath } from "../files/files.constant";
 import {
@@ -22,8 +26,8 @@ export class VhostService {
       return { installed: false, sites: [] };
     }
     const [available, enabled] = await Promise.all([
-      runCommand(server, `ls -1 ${SITES_AVAILABLE} 2>/dev/null`),
-      runCommand(server, `ls -1 ${SITES_ENABLED} 2>/dev/null`),
+      runPrivileged(server, `ls -1 ${SITES_AVAILABLE} 2>/dev/null`),
+      runPrivileged(server, `ls -1 ${SITES_ENABLED} 2>/dev/null`),
     ]);
     const enabledSet = new Set(this.lines(enabled.stdout));
     const sites = this.lines(available.stdout)
@@ -34,9 +38,12 @@ export class VhostService {
 
   async read(server: SshServer, name: string) {
     this.assertSite(name);
+    // Escalated cat, not SFTP: /etc/nginx is root-owned, and sudo can't elevate
+    // an SFTP transfer. `path` is validated (isValidSite + normalize) and can't
+    // contain a quote, so single-quoting makes the interpolation shell-safe.
     const path = normalizeRemotePath(`${SITES_AVAILABLE}/${name}`);
-    const buf = await sftpReadFile(server, path);
-    return { content: buf.toString("utf8") };
+    const { stdout } = await runPrivileged(server, `cat '${path}'`);
+    return { content: stdout };
   }
 
   async write(server: SshServer, name: string, content: string) {
@@ -45,7 +52,15 @@ export class VhostService {
       throw new Error("Config too large (max 64 KB)");
     }
     const path = normalizeRemotePath(`${SITES_AVAILABLE}/${name}`);
-    await sftpWriteFile(server, path, content);
+    // Escalated tee (content over stdin, never argv) instead of an SFTP write.
+    const res = await runPrivilegedInput(
+      server,
+      `tee '${path}' >/dev/null`,
+      content,
+    );
+    if (res.code !== 0) {
+      return { ok: false, output: (res.stderr || res.stdout).trim() };
+    }
     // Validate but never reload here — a bad config must not touch a live nginx.
     return this.run(server, "nginx -t");
   }
@@ -78,7 +93,7 @@ export class VhostService {
   }
 
   private async run(server: SshServer, cmd: string) {
-    const { stdout, stderr, code } = await runCommand(server, cmd);
+    const { stdout, stderr, code } = await runPrivileged(server, cmd);
     return { ok: code === 0, output: (stderr || stdout).trim() };
   }
 }
