@@ -31,6 +31,79 @@ export const KNOWN_OS_IDS = [
 
 export type KnownOsId = (typeof KNOWN_OS_IDS)[number];
 
+/**
+ * Pure planner for a server edit. Given the incoming (already schema-validated)
+ * body and the current row, decide which plain columns change, whether the
+ * pinned host key must be dropped, and how to treat the credentials — without
+ * touching crypto or the DB (the service applies encryption + the write).
+ *
+ * `resetPin`: when the host or port moves, the pinned fingerprint (and the
+ * detected OS) belong to the OLD endpoint, so we clear them and force a fresh
+ * TOFU pin on the next "Test connection". `error`: switching auth type
+ * (password↔key) with no new secret is rejected — the stored secret is the
+ * wrong kind for the new type.
+ */
+export function planServerUpdate(
+  body: {
+    name?: string;
+    host?: string;
+    port?: number;
+    username?: string;
+    authType?: string;
+    secret?: string;
+    passphrase?: string;
+  },
+  current: { host: string; port: number; authType: string },
+): {
+  fields: {
+    name?: string;
+    host?: string;
+    port?: number;
+    username?: string;
+    authType?: string;
+  };
+  resetPin: boolean;
+  setSecret: boolean;
+  setPassphrase: "keep" | "set" | "clear";
+  error: string | null;
+} {
+  const fields: {
+    name?: string;
+    host?: string;
+    port?: number;
+    username?: string;
+    authType?: string;
+  } = {};
+  if (body.name !== undefined) fields.name = body.name;
+  if (body.host !== undefined) fields.host = body.host;
+  if (body.port !== undefined) fields.port = body.port;
+  if (body.username !== undefined) fields.username = body.username;
+  if (body.authType !== undefined) fields.authType = body.authType;
+
+  const hostChanged = body.host !== undefined && body.host !== current.host;
+  const portChanged = body.port !== undefined && body.port !== current.port;
+  const resetPin = hostChanged || portChanged;
+
+  const setSecret = !!body.secret;
+
+  // Absent → keep; empty string → clear (drop the stored passphrase); value → set.
+  const setPassphrase: "keep" | "set" | "clear" =
+    body.passphrase === undefined
+      ? "keep"
+      : body.passphrase === ""
+        ? "clear"
+        : "set";
+
+  const authTypeChanged =
+    body.authType !== undefined && body.authType !== current.authType;
+  const error =
+    authTypeChanged && !setSecret
+      ? "Changing the authentication type requires a new secret"
+      : null;
+
+  return { fields, resetPin, setSecret, setPassphrase, error };
+}
+
 function unquote(value: string) {
   return value.trim().replace(/^["']|["']$/g, "");
 }

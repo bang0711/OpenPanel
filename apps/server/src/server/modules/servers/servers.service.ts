@@ -7,8 +7,9 @@ import {
   DEFAULT_SSH_PORT,
   OS_RELEASE_CMD,
   parseOsRelease,
+  planServerUpdate,
 } from "./servers.constant";
-import type { CreateServerBody } from "./servers.schema";
+import type { CreateServerBody, UpdateServerBody } from "./servers.schema";
 
 type ServerRow = {
   id: string;
@@ -85,6 +86,36 @@ export class ServersService {
         tags: body.tags ?? [],
       },
     });
+    return this.sanitize(server);
+  }
+
+  /**
+   * Edit a server. `current` is the row already loaded by the auth gate; it is
+   * used to decide whether the host key must be re-pinned and to validate an
+   * auth-type switch. Returns a plain error string for a bad request (the
+   * controller turns it into a 400) rather than throwing.
+   */
+  async update(
+    id: string,
+    body: UpdateServerBody,
+    current: { host: string; port: number; authType: string },
+  ) {
+    const plan = planServerUpdate(body, current);
+    if (plan.error) return { error: plan.error };
+
+    const data: Record<string, unknown> = { ...plan.fields };
+    if (plan.resetPin) {
+      data.hostFingerprint = null;
+      data.osId = null;
+      data.osName = null;
+    }
+    if (plan.setSecret) data.secretEnc = encryptSecret(body.secret as string);
+    if (plan.setPassphrase === "set")
+      data.passphraseEnc = encryptSecret(body.passphrase as string);
+    else if (plan.setPassphrase === "clear") data.passphraseEnc = null;
+    if (body.tags !== undefined) data.tags = body.tags;
+
+    const server = await prisma.server.update({ where: { id }, data });
     return this.sanitize(server);
   }
 

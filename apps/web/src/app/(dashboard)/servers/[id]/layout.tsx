@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 
 import { OsIcon } from "@/components/common/os-icon";
 import { ServerStatusBadge } from "@/components/common/server-status-badge";
+import { ServerHeaderActions } from "@/components/servers/server-header-actions";
 import { ServerNav } from "@/components/servers/server-nav";
 import { ServerNavSelect } from "@/components/servers/server-nav-select";
 
@@ -35,6 +36,7 @@ export default async function ServerLayout({
           </p>
         </div>
         <ServerStatusBadge verified={!!server.hostFingerprint} />
+        <ServerHeaderActions server={server} />
       </div>
 
       {/* Rail and content scroll independently; the page itself never does. */}

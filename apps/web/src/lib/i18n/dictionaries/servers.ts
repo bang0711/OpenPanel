@@ -16,6 +16,15 @@ export const servers: LocaleDict = {
     "servers.saveServer": "Save server",
     "servers.added": "Server added",
     "servers.addFailed": "Failed to add server",
+    "servers.editServer": "Edit server",
+    "servers.leaveBlankKeep":
+      "Leave the password or key blank to keep the current credentials.",
+    "servers.updated": "Server updated",
+    "servers.updateFailed": "Failed to update server",
+    "servers.confirmDelete":
+      "Delete this server? This removes its metrics, alerts, backups and permissions. This cannot be undone.",
+    "servers.removed": "Server deleted",
+    "servers.removeFailed": "Failed to delete server",
     "servers.uploadFile": "Upload file",
     "servers.keyPlaceholder": "-----BEGIN OPENSSH PRIVATE KEY----- (paste or upload)",
     "servers.verified": "verified",
@@ -45,6 +54,15 @@ export const servers: LocaleDict = {
     "servers.saveServer": "Lưu máy chủ",
     "servers.added": "Đã thêm máy chủ",
     "servers.addFailed": "Không thể thêm máy chủ",
+    "servers.editServer": "Sửa máy chủ",
+    "servers.leaveBlankKeep":
+      "Để trống mật khẩu hoặc khóa để giữ nguyên thông tin đăng nhập hiện tại.",
+    "servers.updated": "Đã cập nhật máy chủ",
+    "servers.updateFailed": "Không thể cập nhật máy chủ",
+    "servers.confirmDelete":
+      "Xóa máy chủ này? Thao tác này sẽ xóa số liệu, cảnh báo, bản sao lưu và quyền của máy chủ. Không thể hoàn tác.",
+    "servers.removed": "Đã xóa máy chủ",
+    "servers.removeFailed": "Không thể xóa máy chủ",
     "servers.uploadFile": "Tải tệp lên",
     "servers.keyPlaceholder": "-----BEGIN OPENSSH PRIVATE KEY----- (dán hoặc tải lên)",
     "servers.verified": "đã xác minh",

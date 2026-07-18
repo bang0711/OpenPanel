@@ -1,6 +1,75 @@
 import { describe, expect, it } from "bun:test";
 
-import { parseOsRelease } from "./servers.constant";
+import { parseOsRelease, planServerUpdate } from "./servers.constant";
+
+const current = { host: "10.0.0.1", port: 22, authType: "password" };
+
+// Pure planner for an edit: decides which columns change, whether the pinned
+// host key must be dropped, and guards the auth-type switch.
+describe("planServerUpdate", () => {
+  it("only includes provided plain fields", () => {
+    const plan = planServerUpdate({ name: "renamed" }, current);
+    expect(plan.fields).toEqual({ name: "renamed" });
+    expect(plan.resetPin).toBe(false);
+    expect(plan.error).toBeNull();
+  });
+
+  it("empty body updates nothing and keeps the pin", () => {
+    const plan = planServerUpdate({}, current);
+    expect(plan.fields).toEqual({});
+    expect(plan.resetPin).toBe(false);
+    expect(plan.setSecret).toBe(false);
+    expect(plan.setPassphrase).toBe("keep");
+  });
+
+  it("host change forces a re-pin", () => {
+    expect(planServerUpdate({ host: "10.0.0.2" }, current).resetPin).toBe(true);
+  });
+
+  it("port change forces a re-pin", () => {
+    expect(planServerUpdate({ port: 2222 }, current).resetPin).toBe(true);
+  });
+
+  it("host/port set to the SAME value does not re-pin", () => {
+    const plan = planServerUpdate({ host: "10.0.0.1", port: 22 }, current);
+    expect(plan.resetPin).toBe(false);
+  });
+
+  it("rejects an auth-type switch with no new secret", () => {
+    const plan = planServerUpdate({ authType: "key" }, current);
+    expect(plan.error).not.toBeNull();
+    expect(plan.setSecret).toBe(false);
+  });
+
+  it("allows an auth-type switch when a secret is supplied", () => {
+    const plan = planServerUpdate({ authType: "key", secret: "k" }, current);
+    expect(plan.error).toBeNull();
+    expect(plan.setSecret).toBe(true);
+    expect(plan.fields.authType).toBe("key");
+  });
+
+  it("same auth type without a secret is fine and does not rotate it", () => {
+    const plan = planServerUpdate({ authType: "password" }, current);
+    expect(plan.error).toBeNull();
+    expect(plan.setSecret).toBe(false);
+  });
+
+  it("passphrase: absent keeps, empty string clears, value sets", () => {
+    expect(planServerUpdate({}, current).setPassphrase).toBe("keep");
+    expect(planServerUpdate({ passphrase: "" }, current).setPassphrase).toBe(
+      "clear",
+    );
+    expect(planServerUpdate({ passphrase: "p" }, current).setPassphrase).toBe(
+      "set",
+    );
+  });
+
+  it("a provided secret alone (no auth-type change) rotates the credential", () => {
+    const plan = planServerUpdate({ secret: "newpass" }, current);
+    expect(plan.setSecret).toBe(true);
+    expect(plan.error).toBeNull();
+  });
+});
 
 // /etc/os-release is text a remote host controls, so `osId` is allowlisted and
 // `osName` is sanitised before it can reach the UI.

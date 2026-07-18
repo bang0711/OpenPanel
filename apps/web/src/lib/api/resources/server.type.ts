@@ -26,6 +26,19 @@ export type ServerCreateInput = {
   tags?: string[];
 };
 
+// Edit: every field optional. secret/passphrase omitted keep the stored
+// credentials — the server never returns them, so blank means "unchanged".
+export type ServerUpdateInput = {
+  name?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  authType?: "password" | "key";
+  secret?: string;
+  passphrase?: string;
+  tags?: string[];
+};
+
 export type TestResult = {
   ok: boolean;
   fingerprint: string;

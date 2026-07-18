@@ -13,9 +13,11 @@ import { useT } from "@/components/common/i18n-provider";
 export function ServerKeyField({
   value,
   onChange,
+  required = true,
 }: {
   value: string;
   onChange: (value: string) => void;
+  required?: boolean;
 }) {
   const t = useT();
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,7 +49,7 @@ export function ServerKeyField({
           height follows content via the Textarea's `field-sizing-content`. */}
       <Textarea
         id="server-key"
-        required
+        required={required}
         rows={5}
         value={value}
         onChange={(e) => onChange(e.target.value)}

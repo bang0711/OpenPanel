@@ -1,6 +1,11 @@
 import { API_ENDPOINT } from "../endpoint.constant";
 import { request } from "../http";
-import type { Server, ServerCreateInput, TestResult } from "./server.type";
+import type {
+  Server,
+  ServerCreateInput,
+  ServerUpdateInput,
+  TestResult,
+} from "./server.type";
 
 export class ServerResource {
   list() {
@@ -11,6 +16,11 @@ export class ServerResource {
   }
   create(input: ServerCreateInput) {
     return request<Server>("POST", API_ENDPOINT.SERVERS.ROOT, { body: input });
+  }
+  update(id: string, input: ServerUpdateInput) {
+    return request<Server>("PATCH", API_ENDPOINT.SERVERS.BY_ID(id), {
+      body: input,
+    });
   }
   remove(id: string) {
     return request<{ ok: true }>("DELETE", API_ENDPOINT.SERVERS.BY_ID(id));
