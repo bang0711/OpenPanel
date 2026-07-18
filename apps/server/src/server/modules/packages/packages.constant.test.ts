@@ -55,6 +55,25 @@ describe("isValidPkgName", () => {
   it("rejects empty and over-long names", () => {
     expect(isValidPkgName("")).toBe(false);
     expect(isValidPkgName("a".repeat(128))).toBe(true);
+  });
+});
+
+// Regression: apt/dnf/apk mutations ran without sudo, so a non-root SSH user hit
+// "Could not open lock file … Permission denied". Reads stay unprivileged.
+describe("MANAGER_COMMANDS privilege", () => {
+  it("escalates mutating ops with sudo", () => {
+    for (const m of ["apt", "dnf", "apk"] as const) {
+      expect(MANAGER_COMMANDS[m].install("nginx")).toContain("sudo ");
+      expect(MANAGER_COMMANDS[m].remove("nginx")).toContain("sudo ");
+      expect(MANAGER_COMMANDS[m].refresh).toContain("sudo ");
+    }
+  });
+
+  it("leaves read-only ops unprivileged", () => {
+    for (const m of ["apt", "dnf", "apk"] as const) {
+      expect(MANAGER_COMMANDS[m].listInstalled).not.toContain("sudo");
+      expect(MANAGER_COMMANDS[m].search("nginx")).not.toContain("sudo");
+    }
     expect(isValidPkgName("a".repeat(129))).toBe(false);
   });
 });
@@ -66,13 +85,13 @@ describe("MANAGER_COMMANDS", () => {
 
   it("builds the expected command for a validated name", () => {
     expect(MANAGER_COMMANDS.apt.install("nginx")).toBe(
-      "DEBIAN_FRONTEND=noninteractive apt-get install -y nginx",
+      "sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y nginx",
     );
     expect(MANAGER_COMMANDS.apt.remove("nginx")).toBe(
-      "DEBIAN_FRONTEND=noninteractive apt-get remove -y nginx",
+      "sudo env DEBIAN_FRONTEND=noninteractive apt-get remove -y nginx",
     );
-    expect(MANAGER_COMMANDS.dnf.install("nginx")).toBe("dnf install -y nginx");
-    expect(MANAGER_COMMANDS.apk.install("nginx")).toBe("apk add nginx");
+    expect(MANAGER_COMMANDS.dnf.install("nginx")).toBe("sudo dnf install -y nginx");
+    expect(MANAGER_COMMANDS.apk.install("nginx")).toBe("sudo apk add nginx");
     expect(MANAGER_COMMANDS.apt.search("nginx")).toBe("apt-cache search nginx 2>/dev/null");
   });
 
@@ -83,9 +102,9 @@ describe("MANAGER_COMMANDS", () => {
   });
 
   it("keeps the non-templated commands fixed", () => {
-    expect(MANAGER_COMMANDS.apt.refresh).toBe("apt-get update");
-    expect(MANAGER_COMMANDS.dnf.refresh).toBe("dnf makecache");
-    expect(MANAGER_COMMANDS.apk.refresh).toBe("apk update");
+    expect(MANAGER_COMMANDS.apt.refresh).toBe("sudo apt-get update");
+    expect(MANAGER_COMMANDS.dnf.refresh).toBe("sudo dnf makecache");
+    expect(MANAGER_COMMANDS.apk.refresh).toBe("sudo apk update");
   });
 });
 

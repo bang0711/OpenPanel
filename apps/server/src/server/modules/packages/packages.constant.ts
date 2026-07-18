@@ -26,26 +26,33 @@ export const MANAGER_COMMANDS: Record<
     refresh: string;
   }
 > = {
+  // Mutating ops need root, so they run under `sudo` (the SSH user needs
+  // passwordless sudo — the same assumption the db/bulk/backups modules make).
+  // Reads (listInstalled/search) run as the login user, no sudo. apt's
+  // DEBIAN_FRONTEND goes through `sudo env`: `sudo VAR=val cmd` is rejected by a
+  // default sudoers env policy, but a var set by `env` (run as root) is not.
   apt: {
     listInstalled:
       "dpkg-query -W -f='${binary:Package}\\t${Version}\\n' 2>/dev/null",
     search: (q) => `apt-cache search ${q} 2>/dev/null`,
-    install: (n) => `DEBIAN_FRONTEND=noninteractive apt-get install -y ${n}`,
-    remove: (n) => `DEBIAN_FRONTEND=noninteractive apt-get remove -y ${n}`,
-    refresh: "apt-get update",
+    install: (n) =>
+      `sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y ${n}`,
+    remove: (n) =>
+      `sudo env DEBIAN_FRONTEND=noninteractive apt-get remove -y ${n}`,
+    refresh: "sudo apt-get update",
   },
   dnf: {
     listInstalled: "rpm -qa --qf '%{NAME}\\t%{VERSION}-%{RELEASE}\\n' 2>/dev/null",
     search: (q) => `dnf -q search ${q} 2>/dev/null`,
-    install: (n) => `dnf install -y ${n}`,
-    remove: (n) => `dnf remove -y ${n}`,
-    refresh: "dnf makecache",
+    install: (n) => `sudo dnf install -y ${n}`,
+    remove: (n) => `sudo dnf remove -y ${n}`,
+    refresh: "sudo dnf makecache",
   },
   apk: {
     listInstalled: "apk info -v 2>/dev/null",
     search: (q) => `apk search -v ${q} 2>/dev/null`,
-    install: (n) => `apk add ${n}`,
-    remove: (n) => `apk del ${n}`,
-    refresh: "apk update",
+    install: (n) => `sudo apk add ${n}`,
+    remove: (n) => `sudo apk del ${n}`,
+    refresh: "sudo apk update",
   },
 };

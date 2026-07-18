@@ -54,6 +54,17 @@ describe("INSTALL_SPECS", () => {
     expect(INSTALL_SPECS.nginx.install).toContain("apk add nginx");
     expect(INSTALL_SPECS.postgresql.install).toContain("dnf install -y postgresql-server");
   });
+
+  // Regression: installs failed with apt lock "Permission denied" for a non-root
+  // SSH user because the commands ran without sudo. Every manager branch must
+  // escalate.
+  it("runs each package manager under sudo (needs root)", () => {
+    const s = INSTALL_SPECS.nginx.install;
+    expect(s).toContain("sudo apt-get update");
+    expect(s).toContain("sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y nginx");
+    expect(s).toContain("sudo dnf install -y nginx");
+    expect(s).toContain("sudo apk add nginx");
+  });
 });
 
 describe("CATALOG_APPS", () => {

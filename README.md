@@ -48,6 +48,14 @@ bun run dev                   # web :3000 + API/ws :3001
 Open http://localhost:3000, sign in, and add a server. API reference (dev):
 http://localhost:3001/api/docs.
 
+**Managed hosts need passwordless sudo.** Privileged actions (package install,
+service control, user/db management, firewall, backups) run over SSH as the
+registered user via `sudo`, non-interactively — so that user must have NOPASSWD
+sudo, or be root. Otherwise operations like installing nginx fail with e.g.
+`Could not open lock file … Permission denied`. Grant it with a sudoers drop-in
+on the managed host, e.g. `echo '<user> ALL=(ALL) NOPASSWD:ALL' | sudo tee
+/etc/sudoers.d/openpanel` (scope it down if you prefer).
+
 **The docs are not exposed in production.** Two layers: the Scalar UI is only
 mounted when `NODE_ENV !== production` or `ENABLE_API_DOCS=true`, so on a normal
 deploy `/api/docs` returns 404 on the frontend proxy *and* the backend port; and
