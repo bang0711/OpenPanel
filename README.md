@@ -34,6 +34,190 @@ Bun-workspace **monorepo**: `apps/web` (frontend) + `apps/server` (backend) + `p
 
 Ports: web **:3000**, API + terminal ws **:3001**.
 
+## How it works
+
+OpenPanel is a **control plane** — it installs **no agent** on managed hosts.
+Every feature is a validated command run over a pooled SSH connection (or an
+SFTP transfer), and the panel's own Postgres holds the registry, permissions,
+API tokens, alert rules, backup jobs, and audit log. Understand the shared
+substrate below and each feature is a thin, predictable layer on top.
+
+### The SSH substrate (every feature rides this)
+
+`apps/server/src/lib/ssh/client.ts` is the one door to a managed host:
+
+- **Pooled connections** — one live `ssh2` client per `user@host:port`, reused
+  across requests (ssh2 multiplexes exec/SFTP channels over it), idle-evicted
+  after 60s. So the 5s dashboard poll never re-pays a TCP+SSH handshake.
+- **Two run primitives** — `runCommand(server, cmd)` for one exec round-trip;
+  `runCommandInput(server, cmd, stdin)` pipes dynamic content to the command's
+  **stdin** so it never touches the command string (`argv`).
+- **Bounded output** — every exec caps at 5 MB and sets `truncated: true` rather
+  than buffering an unbounded remote payload (a `SELECT *` can't OOM the panel).
+- **TOFU host-key pinning** — the first successful connect pins the host's
+  SHA-256 fingerprint; every later connect is rejected if the key changes. The
+  `untested` badge means "not pinned yet".
+- **Credentials at rest** — the SSH password/key is AES-256-GCM encrypted
+  (`OPENPANEL_ENC_KEY`) and only decrypted in-memory at connect time; it is never
+  returned to the client.
+
+**Two injection defenses, applied per feature:**
+1. **Deliver via stdin / SFTP, not the command line.** File contents
+   (`files`, `dns`, `vhost`, `proxy`), a rebuilt `authorized_keys` (`ssh-keys`),
+   a new `crontab` (`cron`), and raw SQL (`query`, `db`) are all piped to stdin
+   or written over SFTP — untrusted bytes never become shell tokens.
+2. **Allowlist what must be interpolated.** Where a value has to land in a
+   command (a port, domain, systemd unit, zone name, nginx site, jail, IP), the
+   module's `<feature>.constant.ts` gates it with a strict **char-class allowlist**
+   (never a denylist) — e.g. the `ssl` email validator is an allowlist precisely
+   so `;`, `|`, `` ` ``, `$(…)` can't reach `certbot`.
+
+**Privilege — two models.** Some commands are prefixed with `sudo` (`db`,
+`query`, `db-backup`, `backups`, `packages`/`catalog` installs, `bulk` writes) —
+these need the SSH user to have **passwordless sudo**. Others run **bare** and
+assume the user already holds the right (`systemctl`, `ufw`, `certbot`,
+`useradd`, `nginx`, `shutdown`, `docker`) — i.e. root or a group membership. In
+practice: **register hosts as root, or as a NOPASSWD-sudo user.** A missing
+privilege surfaces as a permission error (or, for `power`, a silent no-op).
+
+### Servers & connection
+
+Add a host with IP/user + password or private key. **Test connection** opens a
+one-off SSH session, pins the host key (TOFU), and reads `/etc/os-release` — the
+`ID` is matched against an allowlist to pick the distro brand icon, and
+`PRETTY_NAME` is sanitized (control chars stripped, length capped) because it's
+attacker-controlled if the host is. Editing the host/port clears the pin so the
+next Test re-pins. `OPENPANEL_ENC_KEY` must never change: every stored credential
+is sealed under it, so a new key makes GCM decryption fail and orphans every
+server.
+
+### Monitoring — dashboard, history, alerts
+
+- **Live dashboard** batches **8 reads into one SSH round-trip** — `hostname`,
+  `uname`, `nproc`, `/proc/loadavg`, `/proc/uptime`, `free -b`, `df`,
+  `systemctl is-system-running` joined by a `@@OPSEC@@` sentinel, then split
+  positionally and parsed in pure functions. Polls every 5s, and **pauses when
+  the browser tab is hidden** (each tick is a real SSH trip).
+- **History** comes from the scheduler: every 60s it samples all servers
+  (bounded to 5 concurrent SSH trips, with per-host exponential backoff so a dead
+  host stops taxing the sweep), writes compact `MetricSample` rows in one batch,
+  and prunes >7-day rows hourly. Charts lazy-load recharts (`next/dynamic`).
+- **Alerts** are rules (`cpu`/`mem`/`disk`/`service`, `<`/`>`, threshold) polled
+  every 60s. Metric rules read the latest sample per server in **one** `distinct`
+  query; `service` rules run `systemctl is-active` live. Firing is **edge-based**
+  — notify once on breach, once on resolve — delivered to a webhook channel
+  (best-effort; a dead webhook can't stall the scheduler).
+
+### Services, packages, catalog
+
+- **Services & processes** — `systemctl list-units --output=json` (parsed as
+  JSON), actions from a `start/stop/restart/enable/disable` allowlist, logs via
+  `journalctl`, `ps` for processes, `kill -<SIGNAL>` with a `TERM/KILL/HUP`
+  allowlist and an integer PID > 1. Unit names match a strict regex.
+- **Packages** — first `command -v` detects apt/dnf/apk, then acts. Names are
+  allowlisted before interpolation. Mutations run under `sudo` (apt via
+  `sudo env DEBIAN_FRONTEND=noninteractive apt-get …`, since a default sudoers
+  policy rejects `sudo VAR=val`); list/search stay unprivileged.
+- **App catalog** — one-click installs from **static, author-defined** scripts
+  (no user input interpolated). You supply only an app `id`, resolved with
+  `Object.hasOwn` so prototype keys (`__proto__`, `constructor`) can't slip
+  through. Package-based apps use the same sudo'd manager commands; Docker uses
+  the official `get.docker.com` script.
+
+### Files & terminal
+
+- **File manager** is **pure SFTP — no shell at all** (`readdir`, `stat`,
+  `read/writeFile`, `mkdir`, `rename`, `chmod`). Every path passes
+  `normalizeRemotePath` (absolute, and rejected if any component is `..` *after*
+  normalization). Edits cap at 1 MB, downloads at 100 MB (checked via `stat`
+  first), chmod modes match `^[0-7]{3,4}$`. The boundary is the SSH user's own
+  filesystem permissions.
+- **Web terminal** — the browser first `POST`s for a **ticket** (gated by
+  `authorize(write)`): a `{userId, serverId, exp}` payload HMAC-signed with
+  `BETTER_AUTH_SECRET`, valid **60s**, stored nowhere. It then opens
+  `TERMINAL_WS_URL?ticket=…` to an in-process `.ws()` bridge, which verifies the
+  HMAC (`timingSafeEqual` + expiry) **and re-checks server ownership against the
+  DB** (the ticket only proves who minted it), then pipes a one-off `ssh2` shell
+  both ways. `TERMINAL_WS_URL` is read **server-side** and passed as a prop — not
+  `NEXT_PUBLIC_*`, which would bake it into the client bundle at build time.
+
+### Security & network
+
+- **Firewall (ufw)** — `ufw status numbered` (regex-parsed); allow/deny with the
+  port and protocol validated as a number and an enum; `--force` to skip ufw's
+  interactive prompt.
+- **fail2ban** — `fail2ban-client status` then one status call per jail for
+  banned IPs; unban validated with Node's `net.isIP` (a prior regex backtracked
+  into a ReDoS on ~40 colons).
+- **SSH keys** — `authorized_keys` is read, edited in JS, and written back via
+  **stdin** (`cat > …` + chmod in one command); public keys are rejected if they
+  contain a newline (can't inject extra key lines).
+- **SSL (certbot)** — `certbot --nginx -n --agree-tos -m <email> -d <domain>`;
+  domain and email are strictly allowlisted (they're interpolated). Needs the
+  certbot nginx plugin, a resolving domain, and port 80 for the ACME challenge.
+- **DNS (BIND)** — zone files are read/written over **SFTP** (restricted to
+  `/etc/bind` and `/var/named`), then `named-checkzone` validates and **only on
+  success** does `rndc reload` run — a broken zone never reaches a live server.
+- **nginx vhosts & reverse proxy** — configs written over SFTP to
+  `sites-available`, validated with `nginx -t`; a plain write **won't reload**
+  (a bad config can't take down a live nginx), only enable/disable/create do.
+  The proxy module marks its files with a comment so it never clobbers
+  hand-written vhosts. Assumes the Debian `sites-available`/`sites-enabled`
+  layout.
+
+### System, bulk, ops
+
+- **System users** — `getent passwd` (only uid 0 or ≥1000 shown);
+  `useradd`/`userdel`/`usermod` with an allowlisted username and login shell;
+  the sudo-group toggle tries `sudo` then `wheel` for Debian/RHEL portability.
+- **Bulk actions** — a fixed, allowlisted action (uptime/disk/update/restart)
+  run across many servers **sequentially**, and **each server is individually
+  authorized** at the action's required level before its command runs.
+- **Docker** — `docker ps`/`images` in a tab-delimited Go-template format
+  (parsed), container actions from an allowlist, logs via `docker logs`. Needs
+  the SSH user in the `docker` group (or root).
+- **Power** — `shutdown -r/-h now`; a dropped SSH connection is treated as
+  **success**, because the host cuts the link as it powers off.
+- **Logs & ports** — logs come from a curated source table (syslog/auth/kernel/
+  journal/nginx) plus a dynamic `journalctl -u <unit>` with an allowlisted unit;
+  ports use `ss` with a `netstat` fallback and a parser that reads both formats.
+
+### Databases
+
+- **Manager** — `sudo mysql` / `sudo -u postgres psql`; identifiers are
+  allowlisted (`^[A-Za-z0-9_]+$`, ≤64) and passwords are delivered as SQL over
+  **stdin**, never argv.
+- **Query console** — arbitrary SQL piped to the client over **stdin** (only the
+  DB name is interpolated, and validated); NUL bytes rejected, SQL capped, and
+  the transport's `truncated` flag surfaced to the UI.
+- **Backups** — on-demand and scheduled `mysqldump`/`pg_dump`/`tar` on the remote
+  host, with the filename timestamp coming from the remote `date` (not user
+  input). The scheduled runner and the run-now path have **separate command
+  builders that both re-validate every time**, so a tampered DB row can't inject.
+
+### Access control
+
+- **Per-server RBAC** — `authorize(serverId, user, action)` ranks
+  `read < write < admin`. Owner and global-admin bypass to `admin`; otherwise a
+  per-server `ServerPermission` grants a level; a global `readonly` role clamps
+  everything to `read`. A user with **no** access gets **404, not 403**, so
+  server existence stays hidden. Reads gate `read`, mutations `write`,
+  destructive ops (delete, grant/revoke) `admin`.
+- **API tokens** — `op_` + 24 random bytes, shown **once**; only the SHA-256 hash
+  is stored. A `Bearer` token authenticates as its owner with that owner's full
+  role (unscoped — treat an admin token like an admin password).
+- **Audit log** — append-only; `writeAudit` runs fire-and-forget after the gate
+  passes and before the privileged op, so logging can never block or break an
+  action. The viewer is global-admin only.
+
+### Scheduler
+
+An in-process `setInterval` runs three 60s jobs (metric sampler, alert poller,
+backup runner) with an overlap guard (a slow run skips its next tick rather than
+stacking). It is **single-instance by design** — running two panel processes
+would double-sample and double-fire alerts (no distributed lock). The shared
+sweep helper caps concurrency at 5 and applies per-host backoff.
+
 ## Getting started
 
 ```bash
@@ -436,10 +620,32 @@ O(1) commands — `detectOs` runs once and stores its result rather than re-aski
 
 ## Security notes
 
-- SSH credentials encrypted at rest (AES-256-GCM); never returned to the client.
-- Every API route authenticates via the Elysia `auth`/`admin` macro; server-scoped routes
-  also check ownership.
-- Command inputs are allowlisted (service actions, signals, chmod modes, unit names);
-  file paths are normalized to reject traversal.
-- SSH host keys are pinned on first connect (TOFU) and enforced thereafter.
-- The web terminal authorizes via a short-lived (<=60s) HMAC ticket, re-checked against the DB.
+Mechanics are in [How it works](#how-it-works); this is the **trust model** — the
+boundaries the whole design rests on.
+
+- **The panel is effectively root on every managed host.** Each feature runs a
+  command as the stored SSH identity (via `sudo` or an already-privileged user),
+  with no per-command remote sandbox. A panel compromise is a compromise of every
+  registered server. Treat the panel host, its DB, and `OPENPANEL_ENC_KEY` as
+  crown jewels.
+- **Injection defense is input allowlists + stdin/SFTP delivery**, not remote
+  quoting. Dynamic content is piped to stdin or written over SFTP; anything that
+  must be interpolated is gated by a strict char-class allowlist in
+  `<feature>.constant.ts` (with a hostile-input test). A wrong or bypassed
+  validator means arbitrary shell as the SSH user — so validators are the
+  security surface, and they're tested as such.
+- **Credentials are AES-256-GCM encrypted at rest and never returned to the
+  client.** `OPENPANEL_ENC_KEY` must stay constant and secret for the life of the
+  DB: change it and GCM decryption fails, orphaning every server; leak it plus a
+  DB dump and every SSH credential is recoverable.
+- **Auth on every route** via the Elysia `auth`/`admin` macro; server-scoped
+  routes additionally gate through `authorize()` (read/write/admin), and no-access
+  returns 404 to hide existence. **API tokens are unscoped** — a token carries its
+  owner's full role, so an admin token equals an admin password until revoked.
+- **Host keys are TOFU-pinned** on first connect and enforced after — but the
+  first connect trusts whoever answers, so a MITM at registration time pins the
+  attacker's key.
+- **The web terminal** authorizes via a ≤60s HMAC ticket (`timingSafeEqual`),
+  then re-checks server ownership against the DB before opening the shell.
+- **The scheduler is single-instance** — no distributed lock, so a second panel
+  process would double-fire alerts and backups.
