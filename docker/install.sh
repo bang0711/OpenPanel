@@ -1,7 +1,7 @@
 #!/bin/sh
 # `open-panel install` — writes docker-compose.yml + .env into /output.
 #
-#   docker run --rm -v "$PWD:/output" open-panel:1.0.1 install
+#   docker run --rm -v "$PWD:/output" open-panel:1.1.0 install
 #
 # Deliberately does NOT run docker itself: that would need the docker CLI baked
 # into every container and a mounted docker.sock (root-equivalent on the host).
@@ -11,7 +11,7 @@ OUT=/output
 
 if [ ! -d "$OUT" ]; then
   echo "error: nothing mounted at /output." >&2
-  echo "  docker run --rm -v \"\$PWD:/output\" open-panel:1.0.1 install" >&2
+  echo "  docker run --rm -v \"\$PWD:/output\" open-panel:1.1.0 install" >&2
   exit 1
 fi
 
@@ -33,7 +33,7 @@ else
 # losing or changing it orphans every registered server.
 
 # Image to run. Retag/push and change this to deploy your own build.
-IMAGE=${IMAGE:-open-panel:1.0.1}
+IMAGE=${IMAGE:-open-panel:1.1.0}
 
 # Public URLs. Change both when serving on a real domain, e.g.
 #   PUBLIC_URL=https://panel.example.com

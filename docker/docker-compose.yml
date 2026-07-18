@@ -12,14 +12,14 @@ services:
   # Applies migrations, then exits. `server` waits for it to succeed, so the
   # API never races an unmigrated schema.
   migrate:
-    image: ${IMAGE:-open-panel:1.0.1}
+    image: ${IMAGE:-open-panel:1.1.0}
     command: migrate
     environment:
       DATABASE_URL: ${DATABASE_URL:?required (injected by CI, or set in .env for a manual install)}
     restart: "no"
 
   server:
-    image: ${IMAGE:-open-panel:1.0.1}
+    image: ${IMAGE:-open-panel:1.1.0}
     command: server
     environment:
       DATABASE_URL: ${DATABASE_URL:?required (injected by CI, or set in .env for a manual install)}
@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: ${IMAGE:-open-panel:1.0.1}
+    image: ${IMAGE:-open-panel:1.1.0}
     command: web
     environment:
       # Server-side reach to the API over the compose network (proxy.ts + RSC).
