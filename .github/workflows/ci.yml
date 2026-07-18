@@ -5,19 +5,38 @@ on:
     branches: [main]
   pull_request:
 
+# Least privilege: CI only reads the repo. Nothing here writes contents,
+# packages, or deployments.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+# Pinned so a fresh Bun release can't break the build with no code change.
+# Bump deliberately alongside the local toolchain.
+env:
+  BUN_VERSION: "1.3.14"
 
 jobs:
   test:
     name: typecheck / lint / test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
+
+      # Cache the global Bun install store, keyed on the lockfile, so unchanged
+      # deps don't re-download every run.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
 
       - run: bun install --frozen-lockfile
 
@@ -31,19 +50,31 @@ jobs:
         run: bun run build
 
   image:
-    name: docker build
+    name: docker build + scan
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
 
-      # Build only — publishing happens in release.yml on a tag. This proves the
-      # image still builds on every PR, since `bun run test` cannot catch a
-      # broken Dockerfile.
+      # Build only (no push — publishing is release.yml on a tag). `load: true`
+      # makes the image available to the local daemon so Trivy can scan it. This
+      # proves the image still builds on every PR, which `bun run test` cannot.
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: false
+          load: true
           tags: open-panel:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Fail the PR on a fixable HIGH/CRITICAL CVE in the image we'd publish.
+      # `ignore-unfixed` avoids blocking on base-image CVEs with no upstream fix.
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: open-panel:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

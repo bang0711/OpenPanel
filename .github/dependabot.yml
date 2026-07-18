@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Keep GitHub Actions current. Pinning every `uses:` to a full commit SHA is
+  # the stricter supply-chain bar; letting Dependabot manage the versions is the
+  # maintainable way to get there without hand-tracking SHAs.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # App dependencies (root workspace; Dependabot reads package.json / bun.lock).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-deps:
+        dependency-type: development

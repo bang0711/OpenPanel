@@ -29,6 +29,28 @@ done
 
 cd "$dir"
 
+# Reclaim disk. On a small-disk host, old open-panel:<ver> tags (~243MB each),
+# stopped containers, dangling layers and build cache pile up until the disk
+# fills and the next `pull` (or the scp before this ran) fails. Scoped by
+# "${IMAGE%:*}" to the open-panel repo, so other apps' images are never touched.
+# A tag still used by a running container can't be removed (rmi fails, ignored),
+# so this is safe to run before the new image is up — it clears everything that
+# ISN'T in use, then runs again after the swap to drop the old running image.
+reclaim() {
+  docker container prune -f >/dev/null 2>&1 || true
+  docker image prune -f >/dev/null 2>&1 || true
+  docker builder prune -f >/dev/null 2>&1 || true
+  docker images "${IMAGE%:*}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null \
+    | grep -vxF "$IMAGE" \
+    | xargs -r docker rmi >/dev/null 2>&1 || true
+}
+
+# Free space BEFORE pulling — a full disk fails the pull before any post-deploy
+# cleanup could run.
+echo "==> reclaiming disk before pull"
+reclaim
+df -h "$dir" 2>/dev/null | tail -1 || true
+
 echo "==> deploying $IMAGE"
 docker compose pull
 # Recreates `migrate` too (its image changed). `server` depends on it with
@@ -45,13 +67,35 @@ if ! docker compose up -d --remove-orphans; then
 fi
 docker compose ps
 
-# Reclaim disk. `prune -f` only clears dangling layers, so old open-panel:<ver>
-# tags from previous releases pile up (~371MB each) until the disk fills and the
-# next scp/pull fails. Drop every tag of THIS image's repository except the one
-# just deployed. Filtering by "${IMAGE%:*}" scopes it to open-panel — other
-# apps' images are never listed, so never touched. A tag still used by a running
-# container can't be removed (rmi fails, ignored).
-docker image prune -f
-docker images "${IMAGE%:*}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null \
-  | grep -vxF "$IMAGE" \
-  | xargs -r docker rmi 2>/dev/null || true
+# `up -d` returning 0 only means the containers STARTED — a server that
+# crash-loops or can't reach its DB still "succeeds". Wait for the server's
+# healthcheck to report healthy (it pings /api/health → SELECT 1). If it never
+# does, fail the deploy loudly with logs rather than reporting a green deploy of
+# a down app. ~2 min budget covers a cold start + migrate-gated boot.
+echo "==> waiting for server health"
+cid=$(docker compose ps -q server)
+healthy=0
+if [ -n "$cid" ]; then
+  i=0
+  while [ "$i" -lt 40 ]; do
+    status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" 2>/dev/null || echo gone)
+    case "$status" in
+      healthy) healthy=1; break ;;
+      none) healthy=1; break ;; # no healthcheck defined — don't block the deploy
+      unhealthy | gone) break ;;
+    esac
+    i=$((i + 1))
+    sleep 3
+  done
+fi
+if [ "$healthy" != 1 ]; then
+  echo "==> server did not become healthy — logs:" >&2
+  docker compose logs --no-color --tail 50 server >&2 || true
+  exit 1
+fi
+echo "==> server healthy"
+
+# Now the old image is no longer in use (containers were recreated on $IMAGE),
+# so this pass actually removes it — the pre-pull pass could not.
+echo "==> reclaiming disk after deploy"
+reclaim

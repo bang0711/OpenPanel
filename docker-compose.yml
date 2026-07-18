@@ -39,6 +39,21 @@ services:
     ports:
       # The browser opens the terminal websocket against this port directly.
       - "3001:3001"
+    # Proves the API is actually serving AND its DB is reachable — not just that
+    # the container started. `bun` ships in the image, so no curl/wget needed;
+    # it also fails correctly on a 503 (busybox wget would not).
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "const r=await fetch('http://localhost:3001/api/health');process.exit(r.ok?0:1)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
   web:
@@ -51,7 +66,22 @@ services:
       # bundle. Must be reachable from the browser.
       TERMINAL_WS_URL: ${PUBLIC_WS_URL:-ws://localhost:3001/api/terminal}
     depends_on:
-      - server
+      # Wait for the API to be healthy, not just started — the web app proxies
+      # /api/* to it, so a not-yet-ready server means broken first requests.
+      server:
+        condition: service_healthy
     ports:
       - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "const r=await fetch('http://localhost:3000/login');process.exit(r.ok?0:1)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
